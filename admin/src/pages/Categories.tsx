@@ -1,0 +1,103 @@
+import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createCategory, deleteCategory, fetchCategories, fetchCategoryTree, updateCategory, CategoryDto, CategoryNode } from '@/api/categories';
+import { Typography, Card, CardContent, Button, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Chip, Stack, IconButton, Avatar } from '@mui/material';
+import { absoluteAssetUrl } from '@/api/client';
+import AddIcon from '@mui/icons-material/Add';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { CategoryFormDialog } from '@/components/categories/CategoryFormDialog';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+
+function flatten(nodes: CategoryNode[], depth = 0): (CategoryDto & { depth: number })[] {
+  const out: (CategoryDto & { depth: number })[] = [];
+  for (const n of nodes) {
+    const { children, ...rest } = n as any;
+    out.push({ ...(rest as CategoryDto), depth });
+    if (n.children?.length) out.push(...flatten(n.children, depth + 1));
+  }
+  return out;
+}
+
+export const CategoriesPage: React.FC = () => {
+  const qc = useQueryClient();
+  const { data: tree = [] } = useQuery({ queryKey: ['categories','tree'], queryFn: fetchCategoryTree });
+  const { data: flat = [] } = useQuery({ queryKey: ['categories','flat'], queryFn: fetchCategories });
+
+  const [openForm, setOpenForm] = React.useState(false);
+  const [editing, setEditing] = React.useState<CategoryDto | null>(null);
+  const [deleteId, setDeleteId] = React.useState<string | null>(null);
+
+  const mCreate = useMutation({ mutationFn: createCategory, onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); } });
+  const mUpdate = useMutation({ mutationFn: ({ id, payload }: { id: string; payload: Partial<CategoryDto> }) => updateCategory(id, payload), onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); } });
+  const mDelete = useMutation({ mutationFn: deleteCategory, onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); } });
+
+  const rows = flatten(tree as CategoryNode[]);
+  const byId = new Map(flat.map((c) => [c.id, c]));
+
+  const openAdd = () => { setEditing(null); setOpenForm(true); };
+  const openEdit = (node: any) => {
+    const base = byId.get(node.id);
+    const merged = { ...(base || {}), ...node } as any;
+    setEditing(merged);
+    setOpenForm(true);
+  };
+  const confirmDelete = () => { if (deleteId) mDelete.mutate(deleteId); setDeleteId(null); };
+
+  const handleSubmit = (payload: Partial<CategoryDto>) => {
+    if (editing && payload.id) mUpdate.mutate({ id: payload.id, payload });
+    else mCreate.mutate({ name: String(payload.name), parentId: payload.parentId ?? null, isActive: payload.isActive });
+    setOpenForm(false);
+  };
+
+  return (
+    <>
+      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        <Typography variant="h5">Categories</Typography>
+        <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openAdd}>Add Category</Button>
+      </Stack>
+      <Card variant="outlined">
+        <CardContent sx={{ p: 0 }}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Image</TableCell>
+                  <TableCell>Name (TK)</TableCell>
+                  <TableCell>Name (RU)</TableCell>
+                  <TableCell>Parent Category</TableCell>
+                  <TableCell>Product Count</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((c) => (
+                  <TableRow key={c.id} hover sx={{ '& .MuiTableCell-root': { py: 0.75 } }}>
+                    <TableCell><Avatar variant="rounded" src={absoluteAssetUrl(((c as any).imageUrl) || (byId.get(c.id) as any)?.imageUrl)} sx={{ width: 32, height: 32 }} /></TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <span style={{ opacity: 0.6 }}>{'— '.repeat(c.depth)}</span>
+                        <strong>{(c as any).nameTk || c.name}</strong>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>{(c as any).nameRu || (byId.get(c.id) as any)?.nameRu || ''}</TableCell>
+                    <TableCell>{(byId.get(c.parentId || '') as any)?.nameTk || byId.get(c.parentId || '')?.name || 'None'}</TableCell>
+                    <TableCell>{byId.get(c.id)?.productCount ?? 0}</TableCell>
+                    <TableCell>{c.isActive ? <Chip size="small" color="success" variant="outlined" label="Active" /> : <Chip size="small" color="error" variant="outlined" label="Inactive" />}</TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <IconButton size="small" onClick={() => openEdit(c)}><EditOutlinedIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" onClick={() => setDeleteId(c.id)}><DeleteOutlineIcon fontSize="small" /></IconButton>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      <CategoryFormDialog open={openForm} initial={editing || undefined} tree={(tree as CategoryNode[]) || []} onClose={() => setOpenForm(false)} onSubmit={handleSubmit} />
+      <ConfirmDialog open={!!deleteId} title="Delete category?" desc
