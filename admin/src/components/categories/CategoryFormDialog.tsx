@@ -78,4 +78,8 @@ export const CategoryFormDialog: React.FC<Props> = ({ open, initial, tree, onClo
       </DialogContent>
       <DialogActions>
         <Button color="inherit" onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={() => onSubmit({ id: initial?.id as any, name: nameTk, nameTk, nameRu, paren
+        <Button variant="contained" onClick={() => onSubmit({ id: initial?.id as any, name: nameTk, nameTk, nameRu, parentId: (parentId || null) as any, isActive, ...(imageUrl ? { imageUrl } : {}) })}>{initial ? 'Save' : 'Add'}</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

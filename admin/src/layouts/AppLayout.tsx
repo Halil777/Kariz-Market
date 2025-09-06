@@ -64,8 +64,8 @@ export const AppLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
             {navItems.map((item) => {
               const btn = (
                 <ListItemButton key={item.to} component={Link} to={item.to} selected={pathname === item.to} sx={{ px: open ? 2 : 1.25 }}>
-                  <ListItemIcon sx={{ minWidth: 0, mr: open ? 1.5 : 'auto', justifyContent: 'center' }}>{item.icon}</ListItemIcon>
-                  {open && <ListItemText primary={t(item.labelKey)} />}
+                  <ListItemIcon sx={{ minWidth: 0, mr: open ? 1.25 : 'auto', justifyContent: 'center', '& svg': { fontSize: 18 } }}>{item.icon}</ListItemIcon>
+                  {open && <ListItemText primaryTypographyProps={{ variant: 'body2' }} primary={t(item.labelKey)} />}
                 </ListItemButton>
               );
               return open ? btn : (

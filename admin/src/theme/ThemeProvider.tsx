@@ -69,6 +69,22 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
               }),
             },
           },
+          MuiTableCell: {
+            styleOverrides: {
+              root: ({ theme }) => ({
+                borderRight: `1px solid ${theme.palette.divider}`,
+                '&:last-of-type': { borderRight: 'none' },
+              }),
+              head: ({ theme }) => ({
+                fontWeight: 600,
+                letterSpacing: 0.2,
+                borderBottom: `1px solid ${theme.palette.divider}`,
+                ...(theme.palette.mode === 'dark'
+                  ? { backgroundColor: '#111827', color: theme.palette.text.secondary }
+                  : { backgroundColor: '#F3F4F6', color: '#374151' }),
+              }),
+            },
+          },
           MuiTableRow: {
             styleOverrides: {
               root: ({ theme }) => ({
