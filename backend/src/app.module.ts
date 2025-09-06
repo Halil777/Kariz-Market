@@ -31,6 +31,7 @@ import { EventEntity } from './events/entities/event.entity';
 import { UploadsModule } from './uploads/uploads.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { CouponsModule } from './coupons/coupons.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { join } from 'path';
     LoyaltyModule,
     EventsModule,
     UploadsModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
