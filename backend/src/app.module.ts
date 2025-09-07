@@ -32,6 +32,8 @@ import { UploadsModule } from './uploads/uploads.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CouponsModule } from './coupons/coupons.module';
+import { Coupon } from './coupons/entities/coupon.entity';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -47,8 +49,9 @@ import { CouponsModule } from './coupons/coupons.module';
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432', 10),
         username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASS || '',
+        password: process.env.DB_PASS || 'QwertyWeb123_321',
         database: process.env.DB_NAME || 'kariz_db',
+        // Keep explicit entities for clarity and enable auto loading
         entities: [
           User,
           Vendor,
@@ -66,7 +69,9 @@ import { CouponsModule } from './coupons/coupons.module';
           LoyaltyTransaction,
           RefreshToken,
           EventEntity,
+          Coupon,
         ],
+        autoLoadEntities: true,
         synchronize: true,
       }),
     }),
@@ -80,6 +85,7 @@ import { CouponsModule } from './coupons/coupons.module';
     EventsModule,
     UploadsModule,
     CouponsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

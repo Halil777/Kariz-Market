@@ -42,7 +42,7 @@ const navItems = [
   { to: "/settings", icon: <SettingsIcon />, labelKey: "nav.settings" },
 ];
 
-const drawerWidth = 180;
+const drawerWidth = 220; // slightly increased for readability
 
 export const AppLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [open, setOpen] = React.useState(false);
@@ -94,15 +94,15 @@ export const AppLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
       >
         <Toolbar />
         <Box sx={{ overflow: "auto" }}>
-          <List>
-            {navItems.map((item) => {
+          <List dense disablePadding>
+            {navItems.map((item, idx) => {
               const btn = (
                 <ListItemButton
                   key={item.to}
                   component={Link}
                   to={item.to}
                   selected={pathname === item.to}
-                  sx={{ px: open ? 2 : 1.25 }}
+                  sx={{ px: open ? 2 : 1.25, py: 0.5 }}
                 >
                   <ListItemIcon
                     sx={{
@@ -122,16 +122,18 @@ export const AppLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
                   )}
                 </ListItemButton>
               );
-              return open ? (
+              const itemNode = open ? (
                 btn
               ) : (
-                <Tooltip
-                  key={item.to}
-                  title={t(item.labelKey)}
-                  placement="right"
-                >
+                <Tooltip key={item.to} title={t(item.labelKey)} placement="right">
                   <Box>{btn}</Box>
                 </Tooltip>
+              );
+              return (
+                <React.Fragment key={item.to}>
+                  {itemNode}
+                  {idx < navItems.length - 1 && <Divider sx={{ my: 0 }} />}
+                </React.Fragment>
               );
             })}
           </List>

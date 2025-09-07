@@ -1,10 +1,11 @@
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Button, Card, CardContent, Chip, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Typography } from '@mui/material';
+import { Avatar, Box, Button, Card, CardContent, Chip, IconButton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { Coupon, createCoupon, listCoupons, updateCoupon } from '@/api/coupons';
 import { CouponFormDialog } from '@/components/coupons/CouponFormDialog';
+import { absoluteAssetUrl } from '@/api/client';
 
 export const CouponsPage: React.FC = () => {
   const qc = useQueryClient();
@@ -20,8 +21,12 @@ export const CouponsPage: React.FC = () => {
   const openAdd = () => { setEditing(null); setOpen(true); };
   const openEdit = (c: Coupon) => { setEditing(c); setOpen(true); };
   const handleSubmit = (payload: Partial<Coupon>) => {
-    if (editing && payload.id) mUpdate.mutate({ id: payload.id, payload });
-    else mCreate.mutate(payload);
+    const { id, ...rest } = payload as any;
+    const clean: any = { ...rest };
+    if (clean.startsAt == null || clean.startsAt === '') delete clean.startsAt;
+    if (clean.endsAt == null || clean.endsAt === '') delete clean.endsAt;
+    if (editing && id) mUpdate.mutate({ id, payload: clean });
+    else mCreate.mutate(clean);
     setOpen(false);
   };
 
@@ -39,6 +44,7 @@ export const CouponsPage: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
+                  <TableCell>Name (TM)</TableCell>
                   <TableCell>Code</TableCell>
                   <TableCell>Discount %</TableCell>
                   <TableCell>Expiration Date</TableCell>
@@ -50,6 +56,12 @@ export const CouponsPage: React.FC = () => {
               <TableBody>
                 {paged.map((c) => (
                   <TableRow key={c.id} hover sx={{ '& .MuiTableCell-root': { py: 0.75 } }}>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Avatar variant="rounded" src={absoluteAssetUrl(c.imageUrl) || undefined} sx={{ width: 32, height: 32 }} />
+                        <span>{c.nameTk || '-'}</span>
+                      </Stack>
+                    </TableCell>
                     <TableCell><strong>{c.code}</strong></TableCell>
                     <TableCell>{c.type === 'percent' ? `${c.value}%` : c.value}</TableCell>
                     <TableCell>{c.endsAt || '-'}</TableCell>

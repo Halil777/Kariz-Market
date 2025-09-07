@@ -14,7 +14,7 @@ type Props = {
 
 const collectOptions = (nodes: CategoryNode[], depth = 0, list: { id: string; label: string }[] = []) => {
   for (const n of nodes) {
-    list.push({ id: n.id, label: `${'— '.repeat(depth)}${n.name}` });
+    list.push({ id: n.id, label: `${'— '.repeat(depth)}${(n as any).nameTk || n.name}` });
     if (n.children?.length) collectOptions(n.children, depth + 1, list);
   }
   return list;
@@ -78,8 +78,9 @@ export const CategoryFormDialog: React.FC<Props> = ({ open, initial, tree, onClo
       </DialogContent>
       <DialogActions>
         <Button color="inherit" onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={() => onSubmit({ id: initial?.id as any, name: nameTk, nameTk, nameRu, parentId: (parentId || null) as any, isActive, ...(imageUrl ? { imageUrl } : {}) })}>{initial ? 'Save' : 'Add'}</Button>
+        <Button variant="contained" onClick={() => onSubmit({ id: initial?.id as any, name: nameTk, nameTk, nameRu, parentId: (parentId || null) as any, isActive, imageUrl: imageUrl || undefined })}>{initial ? 'Save' : 'Add'}</Button>
       </DialogActions>
     </Dialog>
   );
 };
+

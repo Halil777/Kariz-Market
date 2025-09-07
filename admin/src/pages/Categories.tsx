@@ -48,8 +48,24 @@ export const CategoriesPage: React.FC = () => {
   const confirmDelete = () => { if (deleteId) mDelete.mutate(deleteId); setDeleteId(null); };
 
   const handleSubmit = (payload: Partial<CategoryDto>) => {
-    if (editing && payload.id) mUpdate.mutate({ id: payload.id, payload });
-    else mCreate.mutate({ name: String(payload.name), parentId: payload.parentId ?? null, isActive: payload.isActive });
+    const { id, ...rest } = payload as any;
+    const clean: any = { ...rest };
+    // Normalize empties
+    if (clean.parentId === '') clean.parentId = null;
+    // Create vs Update
+    if (editing && id) {
+      delete clean.id;
+      mUpdate.mutate({ id, payload: clean });
+    } else {
+      mCreate.mutate({
+        name: clean.name ?? clean.nameTk ?? '',
+        nameTk: clean.nameTk,
+        nameRu: clean.nameRu,
+        parentId: clean.parentId ?? null,
+        isActive: clean.isActive ?? true,
+        imageUrl: clean.imageUrl ?? undefined,
+      });
+    }
     setOpenForm(false);
   };
 
