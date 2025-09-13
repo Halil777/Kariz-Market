@@ -26,19 +26,9 @@ import { VendorFormDialog, Vendor } from '@/components/vendors/VendorFormDialog'
 import { VendorStatusChip, VendorStatus } from '@/components/vendors/VendorStatusChip';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useTranslation } from 'react-i18next';
+import { createVendor, listVendors, updateVendor, deleteVendor } from '@/api/vendors';
 
-const initialVendors: Vendor[] = [
-  { id: '1', name: 'Aşgabat Market', email: 'asgabat@example.com', phone: '+993-12-345678', status: 'active', createdAt: '2023-01-15' },
-  { id: '2', name: 'Türkmen Bazar', email: 'turkmenbazar@example.com', phone: '+993-61-123456', status: 'suspended', createdAt: '2023-02-20' },
-  { id: '3', name: 'Ahal Söwda', email: 'ahal@example.com', phone: '+993-62-246801', status: 'active', createdAt: '2023-03-10' },
-  { id: '4', name: 'Balkan Market', email: 'balkan@example.com', phone: '+993-63-135792', status: 'active', createdAt: '2023-04-05' },
-  { id: '5', name: 'Mary Market', email: 'mary@example.com', phone: '+993-65-369121', status: 'suspended', createdAt: '2023-05-12' },
-  { id: '6', name: 'Lebap Söwda', email: 'lebap@example.com', phone: '+993-64-753951', status: 'active', createdAt: '2023-06-18' },
-  { id: '7', name: 'Daýhan', email: 'dayhan@example.com', phone: '+993-66-8642107', status: 'active', createdAt: '2023-07-22' },
-  { id: '8', name: 'Altyn Gül', email: 'altyngul@example.com', phone: '+993-67-9553218', status: 'suspended', createdAt: '2023-08-28' },
-  { id: '9', name: 'Gül Zaman', email: 'gulzaman@example.com', phone: '+993-68-0564329', status: 'active', createdAt: '2023-09-14' },
-  { id: '10', name: 'Bereketli Söwda', email: 'bereketli@example.com', phone: '+993-69-1975430', status: 'active', createdAt: '2023-10-01' },
-];
+const initialVendors: Vendor[] = [];
 
 export const VendorsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -51,6 +41,21 @@ export const VendorsPage: React.FC = () => {
   const [editing, setEditing] = React.useState<Vendor | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    (async () => {
+      const data = await listVendors();
+      const normalized: Vendor[] = data.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        email: v.email || '',
+        phone: v.phone || '',
+        status: (v.status as VendorStatus) || 'active',
+        createdAt: (typeof v.createdAt === 'string' ? v.createdAt : new Date(v.createdAt).toISOString().slice(0, 10)),
+      }));
+      setVendors(normalized);
+    })();
+  }, []);
+
   const filtered = vendors.filter((v) => {
     const matchesQuery = [v.name, v.email, v.phone].some((f) => f.toLowerCase().includes(query.toLowerCase()));
     const matchesStatus = statusFilter === 'all' ? true : v.status === statusFilter;
@@ -62,19 +67,49 @@ export const VendorsPage: React.FC = () => {
   const openAdd = () => { setEditing(null); setOpenForm(true); };
   const openEdit = (v: Vendor) => { setEditing(v); setOpenForm(true); };
 
-  const handleSubmit = (data: Partial<Vendor>) => {
+  const handleSubmit = async (data: any) => {
     if (editing) {
-      setVendors((prev) => prev.map((p) => (p.id === editing.id ? { ...p, ...data } as Vendor : p)));
+      await updateVendor(editing.id, { name: data.name, status: data.status, location: data.location });
+      const dataList = await listVendors();
+      const normalized: Vendor[] = dataList.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        email: v.email || '',
+        phone: v.phone || '',
+        status: (v.status as VendorStatus) || 'active',
+        createdAt: (typeof v.createdAt === 'string' ? v.createdAt : new Date(v.createdAt).toISOString().slice(0, 10)),
+      }));
+      setVendors(normalized);
     } else {
-      const now = new Date().toISOString().slice(0, 10);
-      const newVendor: Vendor = { id: String(Date.now()), name: String(data.name || ''), email: String(data.email || ''), phone: String(data.phone || ''), status: (data.status as VendorStatus) || 'active', createdAt: now };
-      setVendors((prev) => [newVendor, ...prev]);
+      await createVendor({ name: data.name, email: data.email, password: data.password, phone: data.phone, location: data.location, displayName: data.displayName });
+      const dataList = await listVendors();
+      const normalized: Vendor[] = dataList.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        email: v.email || '',
+        phone: v.phone || '',
+        status: (v.status as VendorStatus) || 'active',
+        createdAt: (typeof v.createdAt === 'string' ? v.createdAt : new Date(v.createdAt).toISOString().slice(0, 10)),
+      }));
+      setVendors(normalized);
     }
     setOpenForm(false);
   };
 
-  const confirmDelete = () => {
-    if (deleteId) setVendors((prev) => prev.filter((v) => v.id !== deleteId));
+  const confirmDelete = async () => {
+    if (deleteId) {
+      await deleteVendor(deleteId);
+      const dataList = await listVendors();
+      const normalized: Vendor[] = dataList.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        email: v.email || '',
+        phone: v.phone || '',
+        status: (v.status as VendorStatus) || 'active',
+        createdAt: (typeof v.createdAt === 'string' ? v.createdAt : new Date(v.createdAt).toISOString().slice(0, 10)),
+      }));
+      setVendors(normalized);
+    }
     setDeleteId(null);
   };
 

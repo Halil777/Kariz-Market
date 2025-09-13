@@ -21,6 +21,12 @@ export class User {
   @Column({ type: 'varchar', length: 32, nullable: true })
   phone?: string | null;
 
+  @Column({ name: 'display_name', type: 'varchar', length: 255, nullable: true })
+  displayName?: string | null;
+
+  @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
+  vendorId?: string | null;
+
   @Column({ name: 'password_hash', type: 'varchar', length: 255 })
   passwordHash: string;
 

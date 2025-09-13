@@ -1,5 +1,14 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
+export enum VendorLocation {
+  Dashoguz = 'Dashoguz',
+  Balkan = 'Balkan',
+  Lebap = 'Lebap',
+  Mary = 'Mary',
+  Ahal = 'Ahal',
+  Ashgabat = 'Ashgabat',
+}
+
 @Entity('vendors')
 export class Vendor {
   @PrimaryGeneratedColumn('uuid')
@@ -19,6 +28,9 @@ export class Vendor {
 
   @Column({ name: 'commission_value', type: 'numeric', precision: 10, scale: 2, default: 0 })
   commissionValue: string;
+
+  @Column({ type: 'enum', enum: VendorLocation, default: VendorLocation.Ashgabat })
+  location: VendorLocation;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

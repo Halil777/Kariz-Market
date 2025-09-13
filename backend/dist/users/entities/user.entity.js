@@ -30,6 +30,14 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "phone", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'display_name', type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "displayName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'vendor_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "vendorId", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'password_hash', type: 'varchar', length: 255 }),
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);

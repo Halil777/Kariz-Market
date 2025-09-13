@@ -9,8 +9,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Vendor = void 0;
+exports.Vendor = exports.VendorLocation = void 0;
 const typeorm_1 = require("typeorm");
+var VendorLocation;
+(function (VendorLocation) {
+    VendorLocation["Dashoguz"] = "Dashoguz";
+    VendorLocation["Balkan"] = "Balkan";
+    VendorLocation["Lebap"] = "Lebap";
+    VendorLocation["Mary"] = "Mary";
+    VendorLocation["Ahal"] = "Ahal";
+    VendorLocation["Ashgabat"] = "Ashgabat";
+})(VendorLocation || (exports.VendorLocation = VendorLocation = {}));
 let Vendor = class Vendor {
 };
 exports.Vendor = Vendor;
@@ -38,6 +47,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'commission_value', type: 'numeric', precision: 10, scale: 2, default: 0 }),
     __metadata("design:type", String)
 ], Vendor.prototype, "commissionValue", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'enum', enum: VendorLocation, default: VendorLocation.Ashgabat }),
+    __metadata("design:type", String)
+], Vendor.prototype, "location", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

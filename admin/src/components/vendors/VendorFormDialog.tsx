@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, TextField, MenuItem } from '@mui/material';
 import { VendorStatus } from './VendorStatusChip';
 import { useTranslation } from 'react-i18next';
+import type { VendorLocation } from '@/api/vendors';
 
 export type Vendor = {
   id: string;
@@ -25,6 +26,9 @@ export const VendorFormDialog: React.FC<Props> = ({ open, initial, onClose, onSu
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [status, setStatus] = React.useState<VendorStatus>('active');
+  const [password, setPassword] = React.useState('');
+  const [displayName, setDisplayName] = React.useState('');
+  const [location, setLocation] = React.useState<VendorLocation>('Ashgabat');
 
   useEffect(() => {
     if (initial) {
@@ -32,17 +36,22 @@ export const VendorFormDialog: React.FC<Props> = ({ open, initial, onClose, onSu
       setEmail(initial.email);
       setPhone(initial.phone);
       setStatus(initial.status);
+      setPassword('');
+      setDisplayName(initial.name);
     } else {
       setName('');
       setEmail('');
       setPhone('');
       setStatus('active');
+      setPassword('');
+      setDisplayName('');
+      setLocation('Ashgabat');
     }
   }, [initial, open]);
 
   const handleSubmit = () => {
-    if (!name || !email) return;
-    onSubmit({ id: initial?.id, name, email, phone, status, createdAt: initial?.createdAt });
+    if (!name || !email || (!initial && !password)) return;
+    onSubmit({ id: initial?.id, name, email, phone, status, createdAt: initial?.createdAt, password, displayName, location });
   };
 
   return (
@@ -51,8 +60,20 @@ export const VendorFormDialog: React.FC<Props> = ({ open, initial, onClose, onSu
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField label={t('vendors.vendorName')} value={name} onChange={(e) => setName(e.target.value)} required fullWidth />
-          <TextField type="email" label={t('vendors.email')} value={email} onChange={(e) => setEmail(e.target.value)} required fullWidth />
+          <TextField type="email" label={t('vendors.loginEmail') || t('vendors.email')} value={email} onChange={(e) => setEmail(e.target.value)} required fullWidth />
+          {!initial && (
+            <TextField type="password" label={t('vendors.password') || 'Password'} value={password} onChange={(e) => setPassword(e.target.value)} required fullWidth />
+          )}
+          <TextField label={t('vendors.userName') || 'User Name'} value={displayName} onChange={(e) => setDisplayName(e.target.value)} fullWidth />
           <TextField label={t('vendors.phone')} value={phone} onChange={(e) => setPhone(e.target.value)} fullWidth />
+          <TextField select label={t('vendors.location') || 'Location'} value={location} onChange={(e) => setLocation(e.target.value as VendorLocation)} fullWidth>
+            <MenuItem value="Dashoguz">Dashoguz</MenuItem>
+            <MenuItem value="Balkan">Balkan</MenuItem>
+            <MenuItem value="Lebap">Lebap</MenuItem>
+            <MenuItem value="Mary">Mary</MenuItem>
+            <MenuItem value="Ahal">Ahal</MenuItem>
+            <MenuItem value="Ashgabat">Ashgabat</MenuItem>
+          </TextField>
           <TextField select label={t('vendors.status')} value={status} onChange={(e) => setStatus(e.target.value as VendorStatus)} fullWidth>
             <MenuItem value="active">{t('vendors.active')}</MenuItem>
             <MenuItem value="suspended">{t('vendors.suspended')}</MenuItem>
