@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, Container, Paper, Typography } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getMyVendor } from '../api/vendors'

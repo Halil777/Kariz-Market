@@ -23,13 +23,13 @@ __decorate([
     __metadata("design:type", String)
 ], Product.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => vendor_entity_1.Vendor, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.ManyToOne)(() => vendor_entity_1.Vendor, { nullable: true, onDelete: 'CASCADE' }),
     (0, typeorm_1.JoinColumn)({ name: 'vendor_id' }),
     __metadata("design:type", vendor_entity_1.Vendor)
 ], Product.prototype, "vendor", void 0);
 __decorate([
     (0, typeorm_1.Index)(),
-    (0, typeorm_1.Column)({ name: 'vendor_id' }),
+    (0, typeorm_1.Column)({ name: 'vendor_id', nullable: true }),
     __metadata("design:type", String)
 ], Product.prototype, "vendorId", void 0);
 __decorate([
@@ -51,6 +51,30 @@ __decorate([
     (0, typeorm_1.Column)({ default: 'active' }),
     __metadata("design:type", String)
 ], Product.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
+    __metadata("design:type", Array)
+], Product.prototype, "images", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 16, default: 'count' }),
+    __metadata("design:type", String)
+], Product.prototype, "unit", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'numeric', precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", String)
+], Product.prototype, "price", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'compare_at', type: 'numeric', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", String)
+], Product.prototype, "compareAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'discount_pct', type: 'numeric', precision: 5, scale: 2, default: 0 }),
+    __metadata("design:type", String)
+], Product.prototype, "discountPct", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'stock', type: 'int', default: 0 }),
+    __metadata("design:type", Number)
+], Product.prototype, "stock", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'tax_class', nullable: true }),
     __metadata("design:type", String)

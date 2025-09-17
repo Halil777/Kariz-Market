@@ -19,13 +19,13 @@ export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Vendor, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Vendor, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'vendor_id' })
-  vendor: Vendor;
+  vendor?: Vendor | null;
 
   @Index()
-  @Column({ name: 'vendor_id' })
-  vendorId: string;
+  @Column({ name: 'vendor_id', nullable: true })
+  vendorId?: string | null;
 
   @ManyToOne(() => Category, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'category_id' })
@@ -41,6 +41,24 @@ export class Product {
 
   @Column({ default: 'active' })
   status: string;
+
+  @Column({ type: 'jsonb', default: [] })
+  images: string[];
+
+  @Column({ type: 'varchar', length: 16, default: 'count' })
+  unit: string; // 'kg' | 'l' | 'count'
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  price: string; // base price
+
+  @Column({ name: 'compare_at', type: 'numeric', precision: 10, scale: 2, nullable: true })
+  compareAt?: string | null; // old price
+
+  @Column({ name: 'discount_pct', type: 'numeric', precision: 5, scale: 2, default: 0 })
+  discountPct: string; // percentage 0..100
+
+  @Column({ name: 'stock', type: 'int', default: 0 })
+  stock: number;
 
   @Column({ name: 'tax_class', nullable: true })
   taxClass?: string | null;

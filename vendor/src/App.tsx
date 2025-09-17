@@ -14,10 +14,10 @@ import Business from './pages/settings/Business'
 import Users from './pages/settings/Users'
 import Login from './pages/Login'
 import Blocked from './pages/Blocked'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { getMyVendor } from './api/vendors'
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+function RequireAuth({ children }: { children: ReactElement }) {
   const token = (() => {
     try { return localStorage.getItem('accessToken') } catch { return null }
   })()
@@ -25,7 +25,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   return children
 }
 
-function VendorStatusGate({ children }: { children: JSX.Element }) {
+function VendorStatusGate({ children }: { children: ReactElement }) {
   const [ok, setOk] = useState<boolean | null>(null)
   const [reason, setReason] = useState<string>('')
 

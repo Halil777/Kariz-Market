@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Vendor } from '../../vendors/entities/vendor.entity';
 
 @Entity('categories')
 export class Category {
@@ -34,6 +35,14 @@ export class Category {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @ManyToOne(() => Vendor, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'vendor_id' })
+  vendor?: Vendor | null;
+
+  @Index()
+  @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
+  vendorId?: string | null;
 
   @Column({ name: 'image_url', nullable: true })
   imageUrl?: string | null;

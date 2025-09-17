@@ -27,71 +27,60 @@ import AddIcon from '@mui/icons-material/Add';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SearchIcon from '@mui/icons-material/Search';
-import { ProductFormDialog, Product } from '@/components/products/ProductFormDialog';
 import { ProductStatusChip, ProductStatus } from '@/components/products/ProductStatusChip';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchProducts, createProduct, updateProduct, deleteProduct, type ProductDto } from '@/api/products';
+import { fetchCategories, type CategoryDto } from '@/api/categories';
+import AdminProductForm, { AdminProductFormValue } from '@/components/products/AdminProductForm';
+import { absoluteAssetUrl } from '@/api/client';
 
-const initialProducts: Product[] = [
-  { id: '1', image: '', name: 'Organic Apples', sku: 'SKU12345', vendor: 'Green Valley Farms', category: 'Fruits', price: 2.5, stock: 150, status: 'active' },
-  { id: '2', image: '', name: 'Whole Wheat Bread', sku: 'SKU67890', vendor: 'Sunrise Bakery', category: 'Bakery', price: 3.0, stock: 80, status: 'active' },
-  { id: '3', image: '', name: 'Free-Range Eggs', sku: 'SKU24680', vendor: 'Happy Hen Farm', category: 'Dairy & Eggs', price: 4.0, stock: 100, status: 'active' },
-  { id: '4', image: '', name: 'Almond Milk', sku: 'SKU13579', vendor: 'Nutty Delights', category: 'Beverages', price: 3.5, stock: 120, status: 'active' },
-  { id: '5', image: '', name: 'Ground Beef', sku: 'SKU97531', vendor: "Butcher's Choice", category: 'Meat & Seafood', price: 6.0, stock: 50, status: 'inactive' },
-];
+type Row = ProductDto & { name: string };
 
 export const ProductsPage: React.FC = () => {
-  const [products, setProducts] = React.useState<Product[]>(initialProducts);
+  const qc = useQueryClient();
+  const { data: items = [] } = useQuery({ queryKey: ['admin','products'], queryFn: fetchProducts });
+  const { data: categories = [] } = useQuery({ queryKey: ['admin','categories','flat'], queryFn: fetchCategories });
+  const mCreate = useMutation({ mutationFn: (p: any) => createProduct(p), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin','products'] }) });
+  const mUpdate = useMutation({ mutationFn: ({ id, payload }: { id: string; payload: any }) => updateProduct(id, payload), onSuccess: () => qc.invalidateQueries({ queryKey: ['admin','products'] }) });
+  const mDelete = useMutation({ mutationFn: deleteProduct, onSuccess: () => qc.invalidateQueries({ queryKey: ['admin','products'] }) });
   const [query, setQuery] = React.useState('');
-  const [vendorFilter, setVendorFilter] = React.useState<'all' | string>('all');
-  const [categoryFilter, setCategoryFilter] = React.useState<'all' | string>('all');
+  const [parentFilter, setParentFilter] = React.useState('');
+  const [categoryFilter, setCategoryFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | ProductStatus>('all');
   const [selected, setSelected] = React.useState<Record<string, boolean>>({});
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [openForm, setOpenForm] = React.useState(false);
-  const [editing, setEditing] = React.useState<Product | null>(null);
+  const [editing, setEditing] = React.useState<ProductDto | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
-
-  const vendors = Array.from(new Set(products.map((p) => p.vendor)));
-  const categories = Array.from(new Set(products.map((p) => p.category)));
-
-  const filtered = products.filter((p) => {
-    const matchesQuery = [p.name, p.sku, p.vendor, p.category].some((f) => f.toLowerCase().includes(query.toLowerCase()));
-    const matchesVendor = vendorFilter === 'all' ? true : p.vendor === vendorFilter;
-    const matchesCategory = categoryFilter === 'all' ? true : p.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' ? true : p.status === statusFilter;
-    return matchesQuery && matchesVendor && matchesCategory && matchesStatus;
-  });
-
-  const paged = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const catMap = React.useMemo(() => new Map<string, CategoryDto>(categories.map((c: any) => [c.id, c])), [categories]);
+  const parentOptions = React.useMemo(() => categories.filter((c) => !c.parentId), [categories]);
+  const childOptions = React.useMemo(() => categories.filter((c) => c.parentId === parentFilter), [categories, parentFilter]);
+  const descendantIds = React.useMemo(() => {
+    if (!parentFilter) return new Set<string>();
+    const set = new Set<string>();
+    const addChildren = (pid: string) => {
+      for (const c of categories) if (c.parentId === pid) { set.add(c.id); addChildren(c.id); }
+    };
+    addChildren(parentFilter);
+    return set;
+  }, [categories, parentFilter]);
+  const rows: Row[] = React.useMemo(() => items.map((p) => ({ ...p, name: (p as any).nameTk || (p as any).nameRu || p.sku })), [items]) as any;
+  const filtered = React.useMemo(() => rows.filter((p) => {
+    const byStatus = (statusFilter === 'all' || p.status === statusFilter);
+    const byQuery = (p.name.toLowerCase().includes(query.toLowerCase()) || p.sku.toLowerCase().includes(query.toLowerCase()));
+    const byCategory = categoryFilter ? (p.categoryId === categoryFilter) : (parentFilter ? descendantIds.has(p.categoryId || '') : true);
+    return byStatus && byQuery && byCategory;
+  }), [rows, statusFilter, query, categoryFilter, parentFilter, descendantIds]);
+  const paged = React.useMemo(() => filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage), [filtered, page, rowsPerPage]);
 
   const openAdd = () => { setEditing(null); setOpenForm(true); };
-  const openEdit = (p: Product) => { setEditing(p); setOpenForm(true); };
+  const openEdit = (p: ProductDto) => { setEditing(p); setOpenForm(true); };
 
-  const handleSubmit = (data: Partial<Product>) => {
-    if (editing) {
-      setProducts((prev) => prev.map((x) => (x.id === editing.id ? { ...x, ...data } as Product : x)));
-    } else {
-      const newProduct: Product = {
-        id: String(Date.now()),
-        name: String(data.name || ''),
-        sku: String(data.sku || ''),
-        vendor: String(data.vendor || ''),
-        category: String(data.category || ''),
-        price: Number(data.price || 0),
-        stock: Number(data.stock || 0),
-        status: (data.status as ProductStatus) || 'active',
-        image: data.image || '',
-      };
-      setProducts((prev) => [newProduct, ...prev]);
-    }
-    setOpenForm(false);
-  };
+  const handleSubmit = (data: AdminProductFormValue) => { if (editing) mUpdate.mutate({ id: editing.id, payload: data }); else mCreate.mutate(data); setOpenForm(false); };
 
-  const confirmDelete = () => {
-    if (deleteId) setProducts((prev) => prev.filter((p) => p.id !== deleteId));
-    setDeleteId(null);
-  };
+  const confirmDelete = () => { if (deleteId) mDelete.mutate(deleteId); setDeleteId(null); };
 
   const toggleSelect = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
   const allSelected = paged.length > 0 && paged.every((p) => selected[p.id]);
@@ -105,18 +94,8 @@ export const ProductsPage: React.FC = () => {
     <>
       <Typography variant="h5" gutterBottom>Products</Typography>
       <Grid container spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-        <Grid item xs={12} md={3}>
-          <TextField select fullWidth size="small" value={vendorFilter} onChange={(e) => { setVendorFilter(e.target.value as any); setPage(0); }}>
-            <MenuItem value="all">Vendor</MenuItem>
-            {vendors.map((v) => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <TextField select fullWidth size="small" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value as any); setPage(0); }}>
-            <MenuItem value="all">Category</MenuItem>
-            {categories.map((c) => (<MenuItem key={c} value={c}>{c}</MenuItem>))}
-          </TextField>
-        </Grid>
+        <Grid item xs={12} md={3}><TextField select fullWidth size="small" value={parentFilter} onChange={(e) => { setParentFilter(e.target.value); setCategoryFilter(''); setPage(0); }}><MenuItem value="">Category</MenuItem>{parentOptions.map((c: any) => (<MenuItem key={c.id} value={c.id}>{c.nameTk || c.name}</MenuItem>))}</TextField></Grid>
+        <Grid item xs={12} md={3}><TextField select fullWidth size="small" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value as any); setPage(0); }} disabled={!parentFilter}><MenuItem value="">Subcategory</MenuItem>{childOptions.map((c: any) => (<MenuItem key={c.id} value={c.id}>{c.nameTk || c.name}</MenuItem>))}</TextField></Grid>
         <Grid item xs={12} md={3}>
           <TextField select fullWidth size="small" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as any); setPage(0); }}>
             <MenuItem value="all">Status</MenuItem>
@@ -149,9 +128,9 @@ export const ProductsPage: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell padding="checkbox"><Checkbox checked={allSelected} onChange={toggleSelectAll} /></TableCell>
+                  <TableCell>Image</TableCell>
                   <TableCell>Product</TableCell>
                   <TableCell>SKU</TableCell>
-                  <TableCell>Vendor</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Price</TableCell>
                   <TableCell>Stock</TableCell>
@@ -163,20 +142,13 @@ export const ProductsPage: React.FC = () => {
                 {paged.map((p) => (
                   <TableRow key={p.id} hover sx={{ '& .MuiTableCell-root': { py: 0.75 } }}>
                     <TableCell padding="checkbox"><Checkbox checked={!!selected[p.id]} onChange={() => toggleSelect(p.id)} /></TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar variant="rounded" sx={{ width: 32, height: 32 }} src={p.image}>
-                          <Box sx={{ width: 18, height: 18, bgcolor: 'success.light', borderRadius: 1 }} />
-                        </Avatar>
-                        <Typography fontWeight={600}>{p.name}</Typography>
-                      </Stack>
-                    </TableCell>
+                    <TableCell>{p.images?.length ? (<Avatar variant="rounded" sx={{ width: 32, height: 32 }} src={absoluteAssetUrl(p.images[0])} />) : (<Box sx={{ width: 32, height: 32, bgcolor: 'divider', borderRadius: 1 }} />)}</TableCell>
+                    <TableCell><Typography fontWeight={600}>{(p as any).nameTk || (p as any).nameRu || p.sku}</Typography></TableCell>
                     <TableCell>{p.sku}</TableCell>
-                    <TableCell>{p.vendor}</TableCell>
-                    <TableCell>{p.category}</TableCell>
-                    <TableCell>{`$${p.price.toFixed(2)}`}</TableCell>
+                    <TableCell>{(() => { const c = p.categoryId ? catMap.get(p.categoryId) as any : undefined; return c ? (c.nameTk || c.name) : '' })()}</TableCell>
+                    <TableCell>{`$${Number(p.price).toFixed(2)}`}</TableCell>
                     <TableCell>{p.stock}</TableCell>
-                    <TableCell><ProductStatusChip status={p.status} /></TableCell>
+                    <TableCell><ProductStatusChip status={p.status as any} /></TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
                         <IconButton size="small" onClick={() => openEdit(p)}><EditOutlinedIcon fontSize="small" /></IconButton>
@@ -209,7 +181,25 @@ export const ProductsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <ProductFormDialog open={openForm} initial={editing} onClose={() => setOpenForm(false)} onSubmit={handleSubmit} />
+      <AdminProductForm
+        open={openForm}
+        initial={editing ? {
+          id: editing.id,
+          sku: editing.sku,
+          nameTk: (editing as any).nameTk,
+          nameRu: (editing as any).nameRu,
+          unit: editing.unit as any,
+          price: Number(editing.price),
+          compareAt: editing.compareAt ?? '',
+          discountPct: Number(editing.discountPct),
+          stock: editing.stock,
+          images: editing.images || [],
+          categoryId: editing.categoryId || '',
+          status: editing.status as any,
+        } : undefined}
+        onClose={() => setOpenForm(false)}
+        onSubmit={(val) => handleSubmit(val)}
+      />
       <ConfirmDialog open={!!deleteId} title="Delete product?" description="This action cannot be undone." onClose={() => setDeleteId(null)} onConfirm={confirmDelete} />
     </>
   );

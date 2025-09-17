@@ -30,7 +30,8 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
-    };
+      vendorId: user.vendorId || null,
+    } as any;
     return this.jwt.sign(payload, {
       secret: process.env.JWT_ACCESS_SECRET || 'dev_access_secret',
       expiresIn: process.env.JWT_ACCESS_TTL || '15m',

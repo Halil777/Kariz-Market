@@ -51,7 +51,8 @@ export default function Categories() {
             <Table size="small" sx={{ width: '100%' }}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Name</TableCell>
+                  <TableCell>Name (TM)</TableCell>
+                  <TableCell>Name (RU)</TableCell>
                   <TableCell>Parent Category</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="right">Actions</TableCell>
@@ -62,7 +63,8 @@ export default function Categories() {
                   const parentName = flat.find((c) => c.id === r.parentId)?.name || '—'
                   return (
                     <TableRow key={r.id} hover>
-                      <TableCell sx={{ pl: 2 + r.depth * 2 }}>{r.name}</TableCell>
+                      <TableCell sx={{ pl: 2 + r.depth * 2 }}>{(r as any).nameTk || r.name || ''}</TableCell>
+                      <TableCell>{(r as any).nameRu || ''}</TableCell>
                       <TableCell>{parentName}</TableCell>
                       <TableCell>
                         <Chip size="small" label={r.isActive ? 'active' : 'inactive'} color={r.isActive ? 'success' : 'default'} />

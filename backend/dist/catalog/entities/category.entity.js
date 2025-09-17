@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Category = void 0;
 const typeorm_1 = require("typeorm");
+const vendor_entity_1 = require("../../vendors/entities/vendor.entity");
 let Category = class Category {
 };
 exports.Category = Category;
@@ -44,6 +45,16 @@ __decorate([
     (0, typeorm_1.Column)({ default: true }),
     __metadata("design:type", Boolean)
 ], Category.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => vendor_entity_1.Vendor, { nullable: true, onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'vendor_id' }),
+    __metadata("design:type", vendor_entity_1.Vendor)
+], Category.prototype, "vendor", void 0);
+__decorate([
+    (0, typeorm_1.Index)(),
+    (0, typeorm_1.Column)({ name: 'vendor_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", String)
+], Category.prototype, "vendorId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'image_url', nullable: true }),
     __metadata("design:type", String)

@@ -17,7 +17,7 @@ type Props = {
   open: boolean;
   initial?: Vendor | null;
   onClose: () => void;
-  onSubmit: (data: Omit<Vendor, 'id' | 'createdAt'> & Partial<Pick<Vendor, 'id' | 'createdAt'>>) => void;
+  onSubmit: (data: any) => void;
 };
 
 export const VendorFormDialog: React.FC<Props> = ({ open, initial, onClose, onSubmit }) => {
