@@ -1,14 +1,12 @@
 import React from 'react';
 import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
+import { BannerCarousel } from '../components/home/BannerCarousel';
 
 export const HomePage: React.FC = () => (
   <Box>
-    <Card variant="outlined" sx={{ mb: 2 }}>
-      <CardContent>
-        <Typography variant="h5">Hero Banner</Typography>
-        <Typography variant="body2">Promotions and featured products</Typography>
-      </CardContent>
-    </Card>
+    <Box sx={{ mb: 2 }}>
+      <BannerCarousel />
+    </Box>
     <Grid container spacing={2}>
       <Grid item xs={12}><Typography variant="h6">Category Highlights</Typography></Grid>
       {[1,2,3,4].map(i => (
@@ -17,4 +15,3 @@ export const HomePage: React.FC = () => (
     </Grid>
   </Box>
 );
-

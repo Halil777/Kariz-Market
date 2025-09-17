@@ -9,6 +9,7 @@ import { OrdersPage } from '@/pages/Orders';
 import { CustomersPage } from '@/pages/Customers';
 import { CouponsPage } from '@/pages/Coupons';
 import { ReportsPage } from '@/pages/Reports';
+import { BannersPage } from '@/pages/Banners';
 import { SettingsPage } from '@/pages/Settings';
 
 export const AppRouter: React.FC = () => {
@@ -23,6 +24,7 @@ export const AppRouter: React.FC = () => {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/coupons" element={<CouponsPage />} />
+          <Route path="/banners" element={<BannersPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>

@@ -34,6 +34,8 @@ import { join } from 'path';
 import { CouponsModule } from './coupons/coupons.module';
 import { Coupon } from './coupons/entities/coupon.entity';
 import { ReportsModule } from './reports/reports.module';
+import { BannersModule } from './banners/banners.module';
+import { Banner } from './banners/entities/banner.entity';
 
 @Module({
   imports: [
@@ -70,6 +72,7 @@ import { ReportsModule } from './reports/reports.module';
           RefreshToken,
           EventEntity,
           Coupon,
+          Banner,
         ],
         autoLoadEntities: true,
         synchronize: true,
@@ -86,6 +89,7 @@ import { ReportsModule } from './reports/reports.module';
     UploadsModule,
     CouponsModule,
     ReportsModule,
+    BannersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

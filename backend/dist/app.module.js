@@ -43,6 +43,8 @@ const path_1 = require("path");
 const coupons_module_1 = require("./coupons/coupons.module");
 const coupon_entity_1 = require("./coupons/entities/coupon.entity");
 const reports_module_1 = require("./reports/reports.module");
+const banners_module_1 = require("./banners/banners.module");
+const banner_entity_1 = require("./banners/entities/banner.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -81,6 +83,7 @@ exports.AppModule = AppModule = __decorate([
                         refresh_token_entity_1.RefreshToken,
                         event_entity_1.EventEntity,
                         coupon_entity_1.Coupon,
+                        banner_entity_1.Banner,
                     ],
                     autoLoadEntities: true,
                     synchronize: true,
@@ -97,6 +100,7 @@ exports.AppModule = AppModule = __decorate([
             uploads_module_1.UploadsModule,
             coupons_module_1.CouponsModule,
             reports_module_1.ReportsModule,
+            banners_module_1.BannersModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

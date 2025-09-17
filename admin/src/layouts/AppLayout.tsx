@@ -22,6 +22,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PeopleIcon from "@mui/icons-material/People";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
+import PanoramaIcon from "@mui/icons-material/Panorama";
 import InsightsIcon from "@mui/icons-material/Insights";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
@@ -38,6 +39,7 @@ const navItems = [
   { to: "/orders", icon: <ReceiptLongIcon />, labelKey: "nav.orders" },
   { to: "/customers", icon: <PeopleIcon />, labelKey: "nav.customers" },
   { to: "/coupons", icon: <LocalOfferIcon />, labelKey: "nav.coupons" },
+  { to: "/banners", icon: <PanoramaIcon />, labelKey: "nav.banners" },
   { to: "/reports", icon: <InsightsIcon />, labelKey: "nav.reports" },
   { to: "/settings", icon: <SettingsIcon />, labelKey: "nav.settings" },
 ];
