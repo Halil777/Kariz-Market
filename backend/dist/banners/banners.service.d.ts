@@ -11,4 +11,5 @@ export declare class BannersService {
     remove(id: string): Promise<{
         id: string;
     }>;
+    private nextOrderValue;
 }

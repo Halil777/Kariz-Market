@@ -8,6 +8,10 @@ export declare class CatalogController {
     constructor(catalog: CatalogService);
     categories(): Promise<any[]>;
     products(categoryId?: string): Promise<any[]>;
+    productHighlights(limit?: string): Promise<{
+        top: any[];
+        deals: any[];
+    }>;
     product(id: string): Promise<any>;
     categoryTree(): Promise<any[]>;
     createCategory(dto: CreateCategoryDto): Promise<import("./entities/category.entity").Category>;

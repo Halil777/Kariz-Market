@@ -8,6 +8,8 @@ export type Banner = {
   subtitleTm?: string | null;
   subtitleRu?: string | null;
   order?: number;
+  isActive?: boolean;
+  createdAt?: string;
 };
 
 export const fetchBanners = async () => {

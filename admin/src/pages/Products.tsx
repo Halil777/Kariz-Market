@@ -78,7 +78,16 @@ export const ProductsPage: React.FC = () => {
   const openAdd = () => { setEditing(null); setOpenForm(true); };
   const openEdit = (p: ProductDto) => { setEditing(p); setOpenForm(true); };
 
-  const handleSubmit = (data: AdminProductFormValue) => { if (editing) mUpdate.mutate({ id: editing.id, payload: data }); else mCreate.mutate(data); setOpenForm(false); };
+  const handleSubmit = (data: AdminProductFormValue) => {
+    if (editing) {
+      const { id: _omit, ...rest } = data;
+      mUpdate.mutate({ id: editing.id, payload: rest });
+    } else {
+      const { id: _omit, ...rest } = data;
+      mCreate.mutate(rest as any);
+    }
+    setOpenForm(false);
+  };
 
   const confirmDelete = () => { if (deleteId) mDelete.mutate(deleteId); setDeleteId(null); };
 
@@ -145,7 +154,13 @@ export const ProductsPage: React.FC = () => {
                     <TableCell>{p.images?.length ? (<Avatar variant="rounded" sx={{ width: 32, height: 32 }} src={absoluteAssetUrl(p.images[0])} />) : (<Box sx={{ width: 32, height: 32, bgcolor: 'divider', borderRadius: 1 }} />)}</TableCell>
                     <TableCell><Typography fontWeight={600}>{(p as any).nameTk || (p as any).nameRu || p.sku}</Typography></TableCell>
                     <TableCell>{p.sku}</TableCell>
-                    <TableCell>{(() => { const c = p.categoryId ? catMap.get(p.categoryId) as any : undefined; return c ? (c.nameTk || c.name) : '' })()}</TableCell>
+                    <TableCell>{(() => {
+                      if ((p as any).categoryNameTk || (p as any).categoryNameRu) {
+                        return (p as any).categoryNameTk || (p as any).categoryNameRu;
+                      }
+                      const c = p.categoryId ? (catMap.get(p.categoryId) as any) : undefined;
+                      return c ? (c.nameTk || c.nameRu || c.name) : '';
+                    })()}</TableCell>
                     <TableCell>{`$${Number(p.price).toFixed(2)}`}</TableCell>
                     <TableCell>{p.stock}</TableCell>
                     <TableCell><ProductStatusChip status={p.status as any} /></TableCell>
@@ -195,6 +210,8 @@ export const ProductsPage: React.FC = () => {
           stock: editing.stock,
           images: editing.images || [],
           categoryId: editing.categoryId || '',
+          categoryNameTk: (editing as any).categoryNameTk,
+          categoryNameRu: (editing as any).categoryNameRu,
           status: editing.status as any,
         } : undefined}
         onClose={() => setOpenForm(false)}

@@ -122,38 +122,89 @@ let CatalogService = class CatalogService {
             qb.andWhere('p.vendor_id = :vid', { vid: params.vendorId });
         qb.orderBy('p.created_at', 'DESC').limit(100);
         const products = await qb.getMany();
+        return this.mapProductsWithTranslations(products);
+    }
+    async mapProductsWithTranslations(products) {
         if (!products.length)
             return [];
         const ids = products.map((p) => p.id);
-        const trs = await this.prodTrRepo.find({ where: { productId: (0, typeorm_2.In)(ids) } });
-        const map = new Map();
-        for (const p of products) {
-            map.set(p.id, {
-                id: p.id,
-                vendorId: p.vendorId,
-                categoryId: p.categoryId || null,
-                sku: p.sku,
-                status: p.status,
-                images: p.images || [],
-                unit: p.unit,
-                price: Number(p.price),
-                compareAt: p.compareAt != null ? Number(p.compareAt) : null,
-                discountPct: Number(p.discountPct || 0),
-                stock: p.stock,
-                createdAt: p.createdAt,
-                updatedAt: p.updatedAt,
-            });
-        }
-        for (const tr of trs) {
-            const entry = map.get(tr.productId);
-            if (!entry)
-                continue;
+        const translations = await this.prodTrRepo.find({ where: { productId: (0, typeorm_2.In)(ids) } });
+        const nameMap = new Map();
+        for (const tr of translations) {
+            let entry = nameMap.get(tr.productId);
+            if (!entry) {
+                entry = {};
+                nameMap.set(tr.productId, entry);
+            }
             if (tr.locale === 'tk')
-                entry.nameTk = tr.name;
+                entry.tk = tr.name;
             if (tr.locale === 'ru')
-                entry.nameRu = tr.name;
+                entry.ru = tr.name;
         }
-        return Array.from(map.values());
+        const categoryIds = Array.from(new Set(products.map((p) => p.categoryId).filter((id) => Boolean(id))));
+        const categoryNameMap = new Map();
+        if (categoryIds.length) {
+            const categories = await this.catRepo.find({ where: { id: (0, typeorm_2.In)(categoryIds) } });
+            for (const category of categories) {
+                const baseName = category.name?.trim() || null;
+                categoryNameMap.set(category.id, { tk: baseName, ru: baseName });
+            }
+            const categoryTranslations = await this.catTrRepo.find({ where: { categoryId: (0, typeorm_2.In)(categoryIds) } });
+            for (const tr of categoryTranslations) {
+                const entry = categoryNameMap.get(tr.categoryId) ?? { tk: null, ru: null };
+                if (tr.locale === 'tk')
+                    entry.tk = tr.name;
+                if (tr.locale === 'ru')
+                    entry.ru = tr.name;
+                categoryNameMap.set(tr.categoryId, entry);
+            }
+        }
+        return products.map((product) => this.serializeProduct(product, nameMap.get(product.id), product.categoryId ? categoryNameMap.get(product.categoryId) : undefined));
+    }
+    serializeProduct(product, names, categoryNames) {
+        return {
+            id: product.id,
+            vendorId: product.vendorId ?? null,
+            categoryId: product.categoryId || null,
+            sku: product.sku,
+            status: product.status,
+            images: product.images || [],
+            unit: product.unit,
+            price: Number(product.price),
+            compareAt: product.compareAt != null ? Number(product.compareAt) : null,
+            discountPct: Number(product.discountPct || 0),
+            stock: product.stock,
+            createdAt: product.createdAt,
+            updatedAt: product.updatedAt,
+            nameTk: names?.tk ?? null,
+            nameRu: names?.ru ?? null,
+            categoryNameTk: categoryNames?.tk ?? null,
+            categoryNameRu: categoryNames?.ru ?? null,
+        };
+    }
+    async getHomeHighlights(limit = 10) {
+        const size = Math.min(Math.max(Math.floor(Number(limit ?? 10)), 1), 20);
+        const baseQuery = this.prodRepo
+            .createQueryBuilder('p')
+            .where('p.vendor_id IS NULL')
+            .andWhere('p.status = :status', { status: 'active' });
+        const topProducts = await baseQuery.clone().orderBy('p.created_at', 'DESC').limit(size).getMany();
+        const bestDeals = await baseQuery
+            .clone()
+            .orderBy('p.discount_pct', 'DESC')
+            .addOrderBy('p.compare_at', 'DESC')
+            .limit(size)
+            .getMany();
+        if (!topProducts.length && !bestDeals.length) {
+            return { top: [], deals: [] };
+        }
+        const uniqueProducts = Array.from(new Map([...topProducts, ...bestDeals].map((p) => [p.id, p])).values());
+        const allDtos = await this.mapProductsWithTranslations(uniqueProducts);
+        const dtoById = new Map(allDtos.map((dto) => [dto.id, dto]));
+        return {
+            top: topProducts.map((p) => dtoById.get(p.id)).filter((v) => Boolean(v)),
+            deals: bestDeals.map((p) => dtoById.get(p.id)).filter((v) => Boolean(v)),
+        };
     }
     getProduct(id) {
         return this.prodRepo.findOne({ where: { id } });
@@ -334,28 +385,9 @@ let CatalogService = class CatalogService {
         const product = await this.prodRepo.findOne({ where: { id, vendorId } });
         if (!product)
             throw new common_1.NotFoundException('Product not found');
-        const trs = await this.prodTrRepo.find({ where: { productId: id } });
-        const dto = {
-            id: product.id,
-            vendorId: product.vendorId,
-            categoryId: product.categoryId || null,
-            sku: product.sku,
-            status: product.status,
-            images: product.images || [],
-            unit: product.unit,
-            price: Number(product.price),
-            compareAt: product.compareAt != null ? Number(product.compareAt) : null,
-            discountPct: Number(product.discountPct || 0),
-            stock: product.stock,
-            createdAt: product.createdAt,
-            updatedAt: product.updatedAt,
-        };
-        for (const tr of trs) {
-            if (tr.locale === 'tk')
-                dto.nameTk = tr.name;
-            if (tr.locale === 'ru')
-                dto.nameRu = tr.name;
-        }
+        const [dto] = await this.mapProductsWithTranslations([product]);
+        if (!dto)
+            throw new common_1.NotFoundException('Product not found');
         return dto;
     }
     async createVendorProduct(vendorId, dto) {
@@ -366,7 +398,11 @@ let CatalogService = class CatalogService {
             }
         }
         const sku = dto.sku && dto.sku.trim() ? dto.sku.trim() : await this.generateUniqueSku();
-        const pricing = this.computePricing({ price: dto.price, compareAt: dto.compareAt ?? null, discountPct: dto.discountPct ?? null });
+        const pricing = this.computePricing({
+            price: dto.price,
+            compareAt: dto.compareAt ?? null,
+            discountPct: dto.discountPct ?? null,
+        });
         const entity = this.prodRepo.create({
             vendorId,
             categoryId: dto.categoryId ?? null,
@@ -380,13 +416,13 @@ let CatalogService = class CatalogService {
             stock: dto.stock,
         });
         const saved = await this.prodRepo.save(entity);
-        const trs = [];
+        const translations = [];
         if (dto.nameTk)
-            trs.push(this.prodTrRepo.create({ productId: saved.id, locale: 'tk', name: dto.nameTk }));
+            translations.push(this.prodTrRepo.create({ productId: saved.id, locale: 'tk', name: dto.nameTk }));
         if (dto.nameRu)
-            trs.push(this.prodTrRepo.create({ productId: saved.id, locale: 'ru', name: dto.nameRu }));
-        if (trs.length)
-            await this.prodTrRepo.save(trs);
+            translations.push(this.prodTrRepo.create({ productId: saved.id, locale: 'ru', name: dto.nameRu }));
+        if (translations.length)
+            await this.prodTrRepo.save(translations);
         return this.getVendorProduct(saved.id, vendorId);
     }
     async updateVendorProduct(id, vendorId, dto) {
@@ -419,7 +455,11 @@ let CatalogService = class CatalogService {
         if (dto.categoryId !== undefined)
             patch.categoryId = dto.categoryId;
         if ('price' in patch || 'compareAt' in patch || 'discountPct' in patch) {
-            const finalPricing = this.computePricing({ price: patch.price ?? existing.price, compareAt: patch.compareAt ?? existing.compareAt ?? null, discountPct: patch.discountPct ?? existing.discountPct });
+            const finalPricing = this.computePricing({
+                price: patch.price ?? existing.price,
+                compareAt: patch.compareAt ?? existing.compareAt ?? null,
+                discountPct: patch.discountPct ?? existing.discountPct,
+            });
             if (finalPricing.price !== undefined)
                 patch.price = finalPricing.price;
             if (finalPricing.compareAt !== undefined)
@@ -460,28 +500,9 @@ let CatalogService = class CatalogService {
         const product = await this.prodRepo.findOne({ where: { id, vendorId: null } });
         if (!product)
             throw new common_1.NotFoundException('Product not found');
-        const trs = await this.prodTrRepo.find({ where: { productId: id } });
-        const dto = {
-            id: product.id,
-            vendorId: null,
-            categoryId: product.categoryId || null,
-            sku: product.sku,
-            status: product.status,
-            images: product.images || [],
-            unit: product.unit,
-            price: Number(product.price),
-            compareAt: product.compareAt != null ? Number(product.compareAt) : null,
-            discountPct: Number(product.discountPct || 0),
-            stock: product.stock,
-            createdAt: product.createdAt,
-            updatedAt: product.updatedAt,
-        };
-        for (const tr of trs) {
-            if (tr.locale === 'tk')
-                dto.nameTk = tr.name;
-            if (tr.locale === 'ru')
-                dto.nameRu = tr.name;
-        }
+        const [dto] = await this.mapProductsWithTranslations([product]);
+        if (!dto)
+            throw new common_1.NotFoundException('Product not found');
         return dto;
     }
     async createGlobalProduct(dto) {

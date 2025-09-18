@@ -17,13 +17,14 @@ export class BannersService {
   }
 
   async create(dto: CreateBannerDto) {
+    const order = dto.order ?? (await this.nextOrderValue());
     const entity = this.repo.create({
       imageUrl: dto.imageUrl,
       titleTm: dto.titleTm ?? null,
       titleRu: dto.titleRu ?? null,
       subtitleTm: dto.subtitleTm ?? null,
       subtitleRu: dto.subtitleRu ?? null,
-      order: dto.order ?? 0,
+      order,
       isActive: dto.isActive ?? true,
     });
     return this.repo.save(entity);
@@ -46,5 +47,21 @@ export class BannersService {
     await this.repo.delete({ id });
     return { id };
   }
-}
 
+  private async nextOrderValue(): Promise<number> {
+    const result = await this.repo
+      .createQueryBuilder('banner')
+      .select('MAX(banner.order)', 'max')
+      .getRawOne<{ max: string | number | null }>();
+
+    const maxValue = result?.max ?? 0;
+    const numericMax =
+      typeof maxValue === 'string'
+        ? Number.parseInt(maxValue, 10)
+        : typeof maxValue === 'number'
+          ? maxValue
+          : 0;
+
+    return Number.isFinite(numericMax) ? numericMax + 1 : 0;
+  }
+}

@@ -118,37 +118,105 @@ export class CatalogService implements OnModuleInit {
     else if (params.vendorId) qb.andWhere('p.vendor_id = :vid', { vid: params.vendorId });
     qb.orderBy('p.created_at', 'DESC').limit(100);
     const products = await qb.getMany();
-    if (!products.length) return [];
-    const ids = products.map((p) => p.id);
-    const trs = await this.prodTrRepo.find({ where: { productId: In(ids) } });
-    const map = new Map<string, any>();
-    for (const p of products) {
-      map.set(p.id, {
-        id: p.id,
-        vendorId: p.vendorId,
-        categoryId: p.categoryId || null,
-        sku: p.sku,
-        status: p.status,
-        images: p.images || [],
-        unit: p.unit,
-        price: Number(p.price),
-        compareAt: p.compareAt != null ? Number(p.compareAt) : null,
-        discountPct: Number(p.discountPct || 0),
-        stock: p.stock,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-      });
-    }
-    for (const tr of trs) {
-      const entry = map.get(tr.productId);
-      if (!entry) continue;
-      if (tr.locale === 'tk') entry.nameTk = tr.name;
-      if (tr.locale === 'ru') entry.nameRu = tr.name;
-    }
-    return Array.from(map.values());
+    return this.mapProductsWithTranslations(products);
   }
 
-  getProduct(id: string) {
+  private async mapProductsWithTranslations(products: Product[]): Promise<any[]> {
+    if (!products.length) return [];
+    const ids = products.map((p) => p.id);
+    const translations = await this.prodTrRepo.find({ where: { productId: In(ids) } });
+    const nameMap = new Map<string, { tk?: string; ru?: string }>();
+    for (const tr of translations) {
+      let entry = nameMap.get(tr.productId);
+      if (!entry) {
+        entry = {};
+        nameMap.set(tr.productId, entry);
+      }
+      if (tr.locale === 'tk') entry.tk = tr.name;
+      if (tr.locale === 'ru') entry.ru = tr.name;
+    }
+
+    const categoryIds = Array.from(
+      new Set(products.map((p) => p.categoryId).filter((id): id is string => Boolean(id))),
+    );
+    const categoryNameMap = new Map<string, { tk?: string | null; ru?: string | null }>();
+    if (categoryIds.length) {
+      const categories = await this.catRepo.find({ where: { id: In(categoryIds) } });
+      for (const category of categories) {
+        const baseName = category.name?.trim() || null;
+        categoryNameMap.set(category.id, { tk: baseName, ru: baseName });
+      }
+      const categoryTranslations = await this.catTrRepo.find({ where: { categoryId: In(categoryIds) } });
+      for (const tr of categoryTranslations) {
+        const entry = categoryNameMap.get(tr.categoryId) ?? { tk: null, ru: null };
+        if (tr.locale === 'tk') entry.tk = tr.name;
+        if (tr.locale === 'ru') entry.ru = tr.name;
+        categoryNameMap.set(tr.categoryId, entry);
+      }
+    }
+
+    return products.map((product) =>
+      this.serializeProduct(
+        product,
+        nameMap.get(product.id),
+        product.categoryId ? categoryNameMap.get(product.categoryId) : undefined,
+      ),
+    );
+  }
+
+  private serializeProduct(
+    product: Product,
+    names?: { tk?: string; ru?: string },
+    categoryNames?: { tk?: string | null; ru?: string | null },
+  ) {
+    return {
+      id: product.id,
+      vendorId: product.vendorId ?? null,
+      categoryId: product.categoryId || null,
+      sku: product.sku,
+      status: product.status,
+      images: product.images || [],
+      unit: product.unit,
+      price: Number(product.price),
+      compareAt: product.compareAt != null ? Number(product.compareAt) : null,
+      discountPct: Number(product.discountPct || 0),
+      stock: product.stock,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      nameTk: names?.tk ?? null,
+      nameRu: names?.ru ?? null,
+      categoryNameTk: categoryNames?.tk ?? null,
+      categoryNameRu: categoryNames?.ru ?? null,
+    };
+  }
+
+  async getHomeHighlights(limit = 10) {
+    const size = Math.min(Math.max(Math.floor(Number(limit ?? 10)), 1), 20);
+    const baseQuery = this.prodRepo
+      .createQueryBuilder('p')
+      .where('p.vendor_id IS NULL')
+      .andWhere('p.status = :status', { status: 'active' });
+
+    const topProducts = await baseQuery.clone().orderBy('p.created_at', 'DESC').limit(size).getMany();
+    const bestDeals = await baseQuery
+      .clone()
+      .orderBy('p.discount_pct', 'DESC')
+      .addOrderBy('p.compare_at', 'DESC')
+      .limit(size)
+      .getMany();
+
+    if (!topProducts.length && !bestDeals.length) {
+      return { top: [], deals: [] };
+    }
+
+    const uniqueProducts = Array.from(new Map([...topProducts, ...bestDeals].map((p) => [p.id, p])).values());
+    const allDtos = await this.mapProductsWithTranslations(uniqueProducts);
+    const dtoById = new Map(allDtos.map((dto) => [dto.id, dto]));
+    return {
+      top: topProducts.map((p) => dtoById.get(p.id)).filter((v): v is any => Boolean(v)),
+      deals: bestDeals.map((p) => dtoById.get(p.id)).filter((v): v is any => Boolean(v)),
+    };
+  }  getProduct(id: string) {
     return this.prodRepo.findOne({ where: { id } });
   }
 
@@ -312,31 +380,12 @@ export class CatalogService implements OnModuleInit {
   async getVendorProduct(id: string, vendorId: string) {
     const product = await this.prodRepo.findOne({ where: { id, vendorId } });
     if (!product) throw new NotFoundException('Product not found');
-    const trs = await this.prodTrRepo.find({ where: { productId: id } });
-    const dto: any = {
-      id: product.id,
-      vendorId: product.vendorId,
-      categoryId: product.categoryId || null,
-      sku: product.sku,
-      status: product.status,
-      images: product.images || [],
-      unit: product.unit,
-      price: Number(product.price),
-      compareAt: product.compareAt != null ? Number(product.compareAt) : null,
-      discountPct: Number(product.discountPct || 0),
-      stock: product.stock,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    };
-    for (const tr of trs) {
-      if (tr.locale === 'tk') dto.nameTk = tr.name;
-      if (tr.locale === 'ru') dto.nameRu = tr.name;
-    }
+    const [dto] = await this.mapProductsWithTranslations([product]);
+    if (!dto) throw new NotFoundException('Product not found');
     return dto;
   }
 
   async createVendorProduct(vendorId: string, dto: CreateProductDto) {
-    // Validate category scope if provided
     if (dto.categoryId) {
       const cat = await this.catRepo.findOne({ where: { id: dto.categoryId } });
       if (!cat || (cat.vendorId ?? null) !== (vendorId ?? null)) {
@@ -344,7 +393,11 @@ export class CatalogService implements OnModuleInit {
       }
     }
     const sku = dto.sku && dto.sku.trim() ? dto.sku.trim() : await this.generateUniqueSku();
-    const pricing = this.computePricing({ price: dto.price, compareAt: dto.compareAt ?? null, discountPct: dto.discountPct ?? null });
+    const pricing = this.computePricing({
+      price: dto.price,
+      compareAt: dto.compareAt ?? null,
+      discountPct: dto.discountPct ?? null,
+    });
     const entity = this.prodRepo.create({
       vendorId,
       categoryId: dto.categoryId ?? null,
@@ -358,10 +411,10 @@ export class CatalogService implements OnModuleInit {
       stock: dto.stock,
     });
     const saved = await this.prodRepo.save(entity);
-    const trs: ProductTranslation[] = [];
-    if (dto.nameTk) trs.push(this.prodTrRepo.create({ productId: saved.id, locale: 'tk', name: dto.nameTk }));
-    if (dto.nameRu) trs.push(this.prodTrRepo.create({ productId: saved.id, locale: 'ru', name: dto.nameRu }));
-    if (trs.length) await this.prodTrRepo.save(trs);
+    const translations: ProductTranslation[] = [];
+    if (dto.nameTk) translations.push(this.prodTrRepo.create({ productId: saved.id, locale: 'tk', name: dto.nameTk }));
+    if (dto.nameRu) translations.push(this.prodTrRepo.create({ productId: saved.id, locale: 'ru', name: dto.nameRu }));
+    if (translations.length) await this.prodTrRepo.save(translations);
     return this.getVendorProduct(saved.id, vendorId);
   }
 
@@ -384,17 +437,22 @@ export class CatalogService implements OnModuleInit {
     if (dto.discountPct !== undefined) patch.discountPct = dto.discountPct;
     if (dto.stock !== undefined) patch.stock = dto.stock;
     if (dto.categoryId !== undefined) patch.categoryId = dto.categoryId;
-    // apply pricing normalization if any of price/compareAt/discountPct provided
+
     if ('price' in patch || 'compareAt' in patch || 'discountPct' in patch) {
-      const finalPricing = this.computePricing({ price: patch.price ?? existing.price, compareAt: patch.compareAt ?? existing.compareAt ?? null, discountPct: patch.discountPct ?? existing.discountPct });
+      const finalPricing = this.computePricing({
+        price: patch.price ?? existing.price,
+        compareAt: patch.compareAt ?? existing.compareAt ?? null,
+        discountPct: patch.discountPct ?? existing.discountPct,
+      });
       if (finalPricing.price !== undefined) patch.price = finalPricing.price;
       if (finalPricing.compareAt !== undefined) patch.compareAt = finalPricing.compareAt;
       if (finalPricing.discountPct !== undefined) patch.discountPct = finalPricing.discountPct;
     }
-    // If SKU cleared, regenerate
+
     if (patch.sku !== undefined && (!patch.sku || !String(patch.sku).trim())) {
       patch.sku = await this.generateUniqueSku();
     }
+
     await this.prodRepo.update({ id, vendorId }, patch);
 
     if (dto.nameTk !== undefined) {
@@ -403,12 +461,14 @@ export class CatalogService implements OnModuleInit {
       else t.name = dto.nameTk || '';
       await this.prodTrRepo.save(t);
     }
+
     if (dto.nameRu !== undefined) {
       let t = await this.prodTrRepo.findOne({ where: { productId: id, locale: 'ru' } });
       if (!t) t = this.prodTrRepo.create({ productId: id, locale: 'ru', name: dto.nameRu || '' });
       else t.name = dto.nameRu || '';
       await this.prodTrRepo.save(t);
     }
+
     return this.getVendorProduct(id, vendorId);
   }
 
@@ -423,26 +483,8 @@ export class CatalogService implements OnModuleInit {
   async getGlobalProduct(id: string) {
     const product = await this.prodRepo.findOne({ where: { id, vendorId: null as any } });
     if (!product) throw new NotFoundException('Product not found');
-    const trs = await this.prodTrRepo.find({ where: { productId: id } });
-    const dto: any = {
-      id: product.id,
-      vendorId: null,
-      categoryId: product.categoryId || null,
-      sku: product.sku,
-      status: product.status,
-      images: product.images || [],
-      unit: product.unit,
-      price: Number(product.price),
-      compareAt: product.compareAt != null ? Number(product.compareAt) : null,
-      discountPct: Number(product.discountPct || 0),
-      stock: product.stock,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-    };
-    for (const tr of trs) {
-      if (tr.locale === 'tk') dto.nameTk = tr.name;
-      if (tr.locale === 'ru') dto.nameRu = tr.name;
-    }
+    const [dto] = await this.mapProductsWithTranslations([product]);
+    if (!dto) throw new NotFoundException('Product not found');
     return dto;
   }
 

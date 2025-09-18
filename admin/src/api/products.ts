@@ -2,8 +2,10 @@ import { api } from './client'
 
 export type ProductDto = {
   id: string
-  vendorId: null
+  vendorId: string | null
   categoryId: string | null
+  categoryNameTk?: string | null
+  categoryNameRu?: string | null
   sku: string
   status: string
   images: string[]
@@ -12,8 +14,8 @@ export type ProductDto = {
   compareAt: number | null
   discountPct: number
   stock: number
-  nameTk?: string
-  nameRu?: string
+  nameTk?: string | null
+  nameRu?: string | null
 }
 
 export const fetchProducts = async (): Promise<ProductDto[]> => {
@@ -26,21 +28,25 @@ export const getProduct = async (id: string): Promise<ProductDto> => {
   return data as ProductDto
 }
 
-export const createProduct = async (payload: Partial<ProductDto> & { unit: 'kg' | 'l' | 'count'; price: number | string; stock: number }): Promise<ProductDto> => {
+const normalisePayload = (payload: Partial<ProductDto>) => {
   const body: any = { ...payload }
+  delete body.id
+  delete body.categoryNameTk
+  delete body.categoryNameRu
+  delete body.vendorId
   if (body.price !== undefined) body.price = String(body.price)
   if (body.compareAt !== undefined && body.compareAt !== null) body.compareAt = String(body.compareAt)
   if (body.discountPct !== undefined) body.discountPct = String(body.discountPct)
-  const { data } = await api.post('/products', body)
+  return body
+}
+
+export const createProduct = async (payload: Partial<ProductDto> & { unit: 'kg' | 'l' | 'count'; price: number | string; stock: number }): Promise<ProductDto> => {
+  const { data } = await api.post('/products', normalisePayload(payload))
   return data as ProductDto
 }
 
 export const updateProduct = async (id: string, payload: Partial<ProductDto>): Promise<ProductDto> => {
-  const body: any = { ...payload }
-  if (body.price !== undefined) body.price = String(body.price)
-  if (body.compareAt !== undefined && body.compareAt !== null) body.compareAt = String(body.compareAt)
-  if (body.discountPct !== undefined) body.discountPct = String(body.discountPct)
-  const { data } = await api.patch(`/products/${id}`, body)
+  const { data } = await api.patch(`/products/${id}`, normalisePayload(payload))
   return data as ProductDto
 }
 
@@ -48,4 +54,3 @@ export const deleteProduct = async (id: string): Promise<{ ok: boolean }> => {
   const { data } = await api.delete(`/products/${id}`)
   return data as { ok: boolean }
 }
-

@@ -16,8 +16,8 @@ type Props = {
 };
 
 export const BannerFormDialog: React.FC<Props> = ({ open, onClose, onSubmit, initial }) => {
-  const [form, setForm] = React.useState<BannerDto>(initial || { imageUrl: '', order: 0, isActive: true });
-  React.useEffect(() => setForm(initial || { imageUrl: '', order: 0, isActive: true }), [initial]);
+  const [form, setForm] = React.useState<BannerDto>(initial || { imageUrl: '', isActive: true });
+  React.useEffect(() => setForm(initial || { imageUrl: '', isActive: true }), [initial]);
 
   const pickImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,7 +63,18 @@ export const BannerFormDialog: React.FC<Props> = ({ open, onClose, onSubmit, ini
             <RichTextEditor value={form.subtitleRu || ''} onChange={(v) => setForm({ ...form, subtitleRu: v })} />
           </Grid>
           <Grid item xs={6}>
-            <TextField type="number" label="Order" fullWidth value={form.order ?? 0} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value || '0', 10) })} />
+            <TextField
+              type="number"
+              label="Order"
+              fullWidth
+              value={form.order ?? ''}
+              onChange={(e) => {
+                const { value } = e.target;
+                const parsed = Number.parseInt(value, 10);
+                setForm({ ...form, order: value === '' || Number.isNaN(parsed) ? undefined : parsed });
+              }}
+              helperText="Leave blank to auto arrange on the site"
+            />
           </Grid>
           <Grid item xs={6}>
             <FormControlLabel control={<Switch checked={!!form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />} label="Active" />

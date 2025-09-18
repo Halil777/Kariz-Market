@@ -1,17 +1,34 @@
 import React from 'react';
-import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
+import { Box } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { BannerCarousel } from '../components/home/BannerCarousel';
+import { ProductGridSection } from '../components/products/ProductGridSection';
+import { fetchHomeHighlights } from '../api/products';
 
-export const HomePage: React.FC = () => (
-  <Box>
-    <Box sx={{ mb: 2 }}>
-      <BannerCarousel />
+export const HomePage: React.FC = () => {
+  const { t } = useTranslation();
+  const { data, isLoading } = useQuery({
+    queryKey: ['home-highlights'],
+    queryFn: () => fetchHomeHighlights(10),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  return (
+    <Box>
+      <Box sx={{ mb: 3 }}>
+        <BannerCarousel />
+      </Box>
+      <ProductGridSection
+        title={t('home.topProducts')}
+        products={data?.top}
+        loading={isLoading}
+      />
+      <ProductGridSection
+        title={t('home.bestDeals')}
+        products={data?.deals}
+        loading={isLoading}
+      />
     </Box>
-    <Grid container spacing={2}>
-      <Grid item xs={12}><Typography variant="h6">Category Highlights</Typography></Grid>
-      {[1,2,3,4].map(i => (
-        <Grid item xs={12} sm={6} md={3} key={i}><Card variant="outlined"><CardContent>Category {i}</CardContent></Card></Grid>
-      ))}
-    </Grid>
-  </Box>
-);
+  );
+};

@@ -25,6 +25,13 @@ export class CatalogController {
     return this.catalog.listProducts({ categoryId, vendorId: null });
   }
 
+  @Get('products/highlights')
+  productHighlights(@Query('limit') limit?: string) {
+    const parsed = limit ? Number.parseInt(limit, 10) : Number.NaN;
+    const size = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+    return this.catalog.getHomeHighlights(size);
+  }
+
   @Get('products/:id')
   product(@Param('id') id: string) {
     // Global-only product
@@ -164,3 +171,5 @@ export class CatalogController {
     return this.catalog.deleteVendorProduct(id, vendorId);
   }
 }
+
+

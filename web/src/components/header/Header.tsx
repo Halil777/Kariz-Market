@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   AppBar,
   Toolbar,
@@ -10,43 +10,111 @@ import {
   Typography,
   Link as MLink,
   Divider,
-} from '@mui/material';
-import AppsIcon from '@mui/icons-material/Apps';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import SearchIcon from '@mui/icons-material/Search';
-import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
-import FlightOutlinedIcon from '@mui/icons-material/FlightOutlined';
-import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
-import { Link } from 'react-router-dom';
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
+import AppsIcon from "@mui/icons-material/Apps";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import SearchIcon from "@mui/icons-material/Search";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
+import FlightOutlinedIcon from "@mui/icons-material/FlightOutlined";
+import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
+import LanguageIcon from "@mui/icons-material/Language";
+import CheckIcon from "@mui/icons-material/Check";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+
+const LOGO_URL = "/logo/logo.png";
 
 export const Header: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const [languageAnchor, setLanguageAnchor] =
+    React.useState<null | HTMLElement>(null);
+  const activeLanguage = i18n.language?.toLowerCase().startsWith("ru")
+    ? "ru"
+    : "tk";
+
+  const languages = React.useMemo(
+    () => [
+      {
+        code: "tk",
+        label: t("language.turkmen"),
+        short: t("language.short.tk"),
+      },
+      {
+        code: "ru",
+        label: t("language.russian"),
+        short: t("language.short.ru"),
+      },
+    ],
+    [t]
+  );
+
+  const quickLinks = React.useMemo(
+    () => [
+      {
+        icon: <CreditCardOutlinedIcon fontSize="small" />,
+        label: t("header.links.installments"),
+        to: "/catalog",
+      },
+      {
+        icon: <FlightOutlinedIcon fontSize="small" />,
+        label: t("header.links.travel"),
+        to: "/catalog",
+      },
+      {
+        icon: <BusinessCenterOutlinedIcon fontSize="small" />,
+        label: t("header.links.business"),
+        to: "/catalog",
+      },
+      { label: t("header.links.promotions"), to: "/catalog" },
+      { label: t("header.links.services"), to: "/catalog" },
+      { label: t("header.links.express"), to: "/catalog" },
+    ],
+    [t]
+  );
+
+  const openLanguageMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setLanguageAnchor(event.currentTarget);
+  };
+
+  const closeLanguageMenu = () => setLanguageAnchor(null);
+
+  const selectLanguage = (code: string) => {
+    if (code !== activeLanguage) {
+      i18n.changeLanguage(code);
+    }
+    closeLanguageMenu();
+  };
+
+  const activeLanguageShort =
+    languages.find((l) => l.code === activeLanguage)?.short ??
+    activeLanguage.toUpperCase();
+
   return (
-    <Box component="header" sx={{ position: 'sticky', top: 0, zIndex: (t) => t.zIndex.appBar }}>
-      {/* Top bar: logo + catalog + big search + actions */}
+    <Box component="header">
       <AppBar position="static" color="primary" enableColorOnDark>
         <Container maxWidth="lg">
           <Toolbar disableGutters sx={{ gap: 1.5, py: 1 }}>
-            {/* Logo */}
-            <Typography
-              variant="h5"
+            <Box
               component={Link}
               to="/"
-              sx={{
-                textDecoration: 'none',
-                color: 'primary.contrastText',
-                fontWeight: 900,
-                mr: 1,
-                letterSpacing: 0.5,
-              }}
+              sx={{ height: "70px", display: "flex", alignItems: "center" }}
             >
-              Kariz
-            </Typography>
+              <Box
+                component="img"
+                src={LOGO_URL}
+                alt="Kariz"
+                sx={{ height: 100, width: 150 }}
+              />
+            </Box>
 
-            {/* Catalog pill button */}
             <Button
               component={Link}
               to="/catalog"
@@ -55,32 +123,30 @@ export const Header: React.FC = () => {
                 borderRadius: 999,
                 px: 2.5,
                 height: 44,
-                textTransform: 'none',
+                textTransform: "none",
                 fontWeight: 700,
-                bgcolor: 'primary.light',
-                color: 'primary.contrastText',
-                boxShadow: 'none',
-                '&:hover': { bgcolor: 'primary.main' },
+                bgcolor: "primary.light",
+                color: "primary.contrastText",
+                boxShadow: "none",
+                "&:hover": { bgcolor: "primary.main" },
               }}
               variant="contained"
-              color="secondary"
             >
-              Каталог
+              {t("header.catalogButton")}
             </Button>
 
-            {/* Big search with location selector on the left */}
-            <Box sx={{ flex: 1, mx: 1.5, display: { xs: 'none', sm: 'flex' } }}>
+            <Box sx={{ flex: 1, mx: 1.5, display: { xs: "none", sm: "flex" } }}>
               <Box
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  bgcolor: 'background.paper',
+                  display: "flex",
+                  alignItems: "center",
+                  bgcolor: "background.paper",
                   borderRadius: 999,
                   px: 1,
                   py: 0.5,
-                  width: '100%',
-                  border: '2px solid',
-                  borderColor: 'primary.light',
+                  width: "100%",
+                  border: "2px solid",
+                  borderColor: "primary.light",
                 }}
               >
                 <Button
@@ -88,38 +154,96 @@ export const Header: React.FC = () => {
                   startIcon={<PlaceOutlinedIcon />}
                   endIcon={<ArrowDropDownIcon />}
                   sx={{
-                    textTransform: 'none',
+                    textTransform: "none",
                     borderRadius: 999,
-                    color: 'text.primary',
-                    bgcolor: 'action.hover',
+                    color: "text.primary",
+                    bgcolor: "action.hover",
                     px: 1.5,
                     mr: 1,
                     minWidth: 0,
                   }}
                 >
-                  Везде
+                  {t("header.locationButton")}
                 </Button>
-                <Box component="input"
-                  placeholder="Искать на Kariz"
-                  aria-label="search"
+                <Box
+                  component="input"
+                  placeholder={t("header.searchPlaceholder") as string}
+                  aria-label={t("header.searchPlaceholder") as string}
                   sx={{
                     flex: 1,
                     border: 0,
-                    outline: 'none',
+                    outline: "none",
                     fontSize: 16,
                     px: 1,
-                    bgcolor: 'transparent',
-                    color: 'text.primary',
+                    bgcolor: "transparent",
+                    color: "text.primary",
                   }}
                 />
-                <IconButton type="submit" sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' } }}>
+                <IconButton
+                  type="submit"
+                  sx={{
+                    bgcolor: "primary.main",
+                    color: "primary.contrastText",
+                    "&:hover": { bgcolor: "primary.dark" },
+                  }}
+                >
                   <SearchIcon />
                 </IconButton>
               </Box>
             </Box>
 
-            {/* Action icons */}
-            <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.contrastText' }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                color: "primary.contrastText",
+                gap: 0.5,
+              }}
+            >
+              <Button
+                color="inherit"
+                startIcon={<LanguageIcon />}
+                endIcon={<ArrowDropDownIcon />}
+                onClick={openLanguageMenu}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 700,
+                  px: 1.5,
+                  minWidth: 0,
+                }}
+                aria-haspopup="menu"
+                aria-controls={languageAnchor ? "language-menu" : undefined}
+                aria-expanded={languageAnchor ? "true" : undefined}
+              >
+                {activeLanguageShort}
+              </Button>
+              <Menu
+                id="language-menu"
+                anchorEl={languageAnchor}
+                open={Boolean(languageAnchor)}
+                onClose={closeLanguageMenu}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+              >
+                {languages.map((language) => (
+                  <MenuItem
+                    key={language.code}
+                    selected={language.code === activeLanguage}
+                    onClick={() => selectLanguage(language.code)}
+                  >
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      {language.code === activeLanguage ? (
+                        <CheckIcon fontSize="small" />
+                      ) : null}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={language.label}
+                      secondary={language.short}
+                    />
+                  </MenuItem>
+                ))}
+              </Menu>
+
               <IconButton component={Link} to="/account" color="inherit">
                 <Badge variant="dot" color="secondary" overlap="circular">
                   <PersonOutlineIcon />
@@ -136,34 +260,59 @@ export const Header: React.FC = () => {
         </Container>
       </AppBar>
 
-      {/* Secondary links bar */}
-      <Box sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
+      <Box
+        sx={{
+          bgcolor: "background.paper",
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
         <Container maxWidth="lg">
-          <Toolbar disableGutters variant="dense" sx={{ gap: 2, minHeight: 44 }}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', color: 'text.secondary' }}>
-            
-              <MLink component={Link} to="/catalog" underline="none" color="inherit" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <CreditCardOutlinedIcon fontSize="small" /> Ozon Карта
-              </MLink>
-              <MLink component={Link} to="/catalog" underline="none" color="inherit" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <FlightOutlinedIcon fontSize="small" /> Билеты, отели
-              </MLink>
-              <MLink component={Link} to="/catalog" underline="none" color="inherit" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <BusinessCenterOutlinedIcon fontSize="small" /> Для бизнеса
-              </MLink>
-              <MLink component={Link} to="/catalog" underline="none" color="inherit">Одежда, обувь</MLink>
-              <MLink component={Link} to="/catalog" underline="none" color="inherit">Электроника</MLink>
-              <MLink component={Link} to="/catalog" underline="none" color="inherit">Дом и сад</MLink>
-              <MLink component={Link} to="/catalog" underline="none" color="inherit">Товары за 1₽</MLink>
+          <Toolbar
+            disableGutters
+            variant="dense"
+            sx={{ gap: 2, minHeight: 44 }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                alignItems: "center",
+                color: "text.secondary",
+                flexWrap: "wrap",
+              }}
+            >
+              {quickLinks.map((link, idx) => (
+                <MLink
+                  key={`${link.label}-${idx}`}
+                  component={Link}
+                  to={link.to}
+                  underline="none"
+                  color="inherit"
+                  sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                >
+                  {link.icon}
+                  {link.label}
+                </MLink>
+              ))}
             </Box>
 
             <Box sx={{ flex: 1 }} />
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                color: "text.secondary",
+              }}
+            >
               <PlaceOutlinedIcon fontSize="small" />
-              <Typography variant="body2">Москва</Typography>
+              <Typography variant="body2">{t("header.city")}</Typography>
               <Divider flexItem orientation="vertical" />
-              <MLink component={Link} to="#" underline="hover" color="primary">Укажите адрес</MLink>
+              <MLink component={Link} to="#" underline="hover" color="primary">
+                {t("header.changeCity")}
+              </MLink>
             </Box>
           </Toolbar>
         </Container>

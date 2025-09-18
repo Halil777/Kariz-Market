@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Grid, Card, CardContent, Typography, Drawer, Toolbar } from '@mui/material';
+import { Box, Card, CardContent, Typography, Drawer, Toolbar } from '@mui/material';
 
 export const CatalogPage: React.FC = () => {
   return (
@@ -10,15 +10,27 @@ export const CatalogPage: React.FC = () => {
         <Typography variant="body2">Category tree, price, brand, rating...</Typography>
       </Drawer>
       <Box flex={1}>
-        <Grid container spacing={2}>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: {
+              xs: 'repeat(2, minmax(0, 1fr))',
+              sm: 'repeat(3, minmax(0, 1fr))',
+              md: 'repeat(4, minmax(0, 1fr))',
+              lg: 'repeat(5, minmax(0, 1fr))',
+            },
+          }}
+        >
           {[...Array(12)].map((_, i) => (
-            <Grid key={i} item xs={6} sm={4} md={3}>
-              <Card variant="outlined"><CardContent><Typography>Product {i+1}</Typography></CardContent></Card>
-            </Grid>
+            <Card key={i} variant="outlined">
+              <CardContent>
+                <Typography>Product {i + 1}</Typography>
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       </Box>
     </Box>
   );
 };
-

@@ -1,10 +1,12 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { fetchBanners } from '../../api/banners';
-import i18n from '../../i18n/setup';
+import Slider from 'react-slick';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import { useTranslation } from 'react-i18next';
+import { fetchBanners, type Banner } from '../../api/banners';
 import { API_BASE_URL } from '../../api/client';
 
-type Slide = { id: number; color: string; image?: string };
+type Slide = { id: number; color: string; image?: string; meta?: Banner };
 
 type Props = {
   intervalMs?: number;
@@ -12,105 +14,198 @@ type Props = {
   height?: number | string;
 };
 
-export const BannerCarousel: React.FC<Props> = ({
-  intervalMs = 4000,
-  slides = [
-    { id: 1, color: '#fde6cf' },
-    { id: 2, color: '#e0f0ff' },
-    { id: 3, color: '#e9f7ef' },
-  ],
-  height = 340,
-}) => {
+const FALLBACK_SLIDES: Slide[] = [
+  { id: 1, color: '#fde6cf' },
+  { id: 2, color: '#e0f0ff' },
+  { id: 3, color: '#e9f7ef' },
+];
+
+export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FALLBACK_SLIDES, height = 340 }) => {
+  const sliderRef = React.useRef<Slider | null>(null);
+  const [remote, setRemote] = React.useState<Banner[] | null>(null);
   const [index, setIndex] = React.useState(0);
-  const [remote, setRemote] = React.useState<any[] | null>(null);
-  const count = (remote?.length || slides.length);
+  const { i18n } = useTranslation();
 
   React.useEffect(() => {
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % count);
-    }, intervalMs);
-    return () => window.clearInterval(id);
-  }, [count, intervalMs]);
-
-  React.useEffect(() => {
-    fetchBanners().then(setRemote).catch(() => setRemote(null));
+    fetchBanners()
+      .then(setRemote)
+      .catch(() => setRemote(null));
   }, []);
 
-  const apiOrigin = (() => { try { return new URL(API_BASE_URL).origin; } catch { return ''; } })();
-  const currentSlides = remote?.map((b, idx) => ({
-    id: idx + 1,
-    color: '#f5f5f7',
-    image: b.imageUrl?.startsWith('http') ? b.imageUrl : `${apiOrigin}${b.imageUrl}`,
-    meta: b,
-  })) || slides;
+  const language = React.useMemo<'ru' | 'tk'>(() => (i18n.language?.toLowerCase().startsWith('ru') ? 'ru' : 'tk'), [i18n.language]);
+
+  const apiOrigin = React.useMemo(() => {
+    try {
+      return new URL(API_BASE_URL).origin;
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const remoteSlides = React.useMemo<Slide[]>(() => {
+    if (!remote || remote.length === 0) return [];
+    return remote
+      .filter((banner) => banner.isActive !== false)
+      .map((banner, idx) => ({
+        id: idx + 1,
+        color: '#f5f5f7',
+        image: banner.imageUrl?.startsWith('http') ? banner.imageUrl : `${apiOrigin}${banner.imageUrl}`,
+        meta: banner,
+      }));
+  }, [remote, apiOrigin]);
+
+  const currentSlides = remoteSlides.length > 0 ? remoteSlides : slides;
+  const count = currentSlides.length;
+
+  const handleBeforeChange = React.useCallback((_: number, next: number) => {
+    setIndex(next);
+  }, []);
+
+  const sliderSettings = React.useMemo(
+    () => ({
+      dots: count > 1,
+      arrows: false,
+      infinite: count > 1,
+      autoplay: count > 1,
+      autoplaySpeed: intervalMs,
+      pauseOnHover: true,
+      slidesToShow: 1,
+      slidesToScroll: 1,
+      speed: 600,
+      beforeChange: handleBeforeChange,
+    }),
+    [count, intervalMs, handleBeforeChange],
+  );
+
+  React.useEffect(() => {
+    if (count === 0) {
+      setIndex(0);
+      return;
+    }
+    if (index >= count) {
+      setIndex(0);
+      sliderRef.current?.slickGoTo(0, true);
+    }
+  }, [count, index]);
+
+  React.useEffect(() => {
+    sliderRef.current?.slickGoTo(0, true);
+    setIndex(0);
+  }, [remoteSlides.length]);
+
+  const currentMeta = remoteSlides.length > 0 && count > 0 ? remoteSlides[index % remoteSlides.length]?.meta ?? null : null;
+
+  const localized = React.useCallback(
+    <T extends Record<string, unknown>>(entity: T | null | undefined, base: string) => {
+      if (!entity) return undefined;
+      const primaryKey = `${base}${language === 'ru' ? 'Ru' : 'Tm'}` as keyof T;
+      const fallbackKey = `${base}${language === 'ru' ? 'Tm' : 'Ru'}` as keyof T;
+      return (
+        (entity[primaryKey] as string | null | undefined) ??
+        (entity[fallbackKey] as string | null | undefined) ??
+        (entity[base as keyof T] as string | null | undefined)
+      );
+    },
+    [language],
+  );
 
   return (
-    <Box sx={{ position: 'relative', borderRadius: 3, overflow: 'hidden', bgcolor: 'grey.100', boxShadow: 1 }}>
-      {/* Track */}
-      <Box
-        sx={{
-          display: 'flex',
-          width: `${count * 100}%`,
-          transform: `translateX(-${(100 / count) * index}%)`,
-          transition: 'transform 600ms ease',
-          height,
+    <Box
+      sx={{
+        position: 'relative',
+        borderRadius: 3,
+        overflow: 'hidden',
+        bgcolor: 'grey.100',
+        boxShadow: 1,
+        '.slick-slider': { height },
+        '.slick-list': { height: '100%' },
+        '.slick-slide > div': { height: '100%' },
+        '.slick-dots': { bottom: 16 },
+        '.slick-dots li button:before': {
+          fontSize: 10,
+          color: 'rgba(255,255,255,0.55)',
+          opacity: 1,
+        },
+        '.slick-dots li.slick-active button:before': { color: '#fff' },
+      }}
+    >
+      <Slider
+        ref={(instance) => {
+          sliderRef.current = instance;
         }}
+        {...sliderSettings}
       >
-        {currentSlides.map((s: any) => (
+        {currentSlides.map((slide) => (
           <Box
-            key={s.id}
+            key={slide.id}
             sx={{
-              flex: '0 0 100%',
-              height: '100%',
-              bgcolor: s.color,
-              backgroundImage: s.image
-                ? `url(${s.image})`
-                : 'linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.05))',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
               position: 'relative',
+              width: '100%',
+              height: '100%',
+              bgcolor: slide.color,
             }}
-          />
+          >
+            {slide.image ? (
+              <LazyLoadImage
+                src={slide.image}
+                alt={localized(slide.meta, 'title') || 'banner'}
+                effect='blur'
+                draggable={false}
+                width='100%'
+                height='100%'
+                style={{ objectFit: 'cover', display: 'block' }}
+                wrapperClassName='banner-carousel__image'
+              />
+            ) : (
+              <Box
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.05))',
+                }}
+              />
+            )}
+          </Box>
         ))}
-      </Box>
+      </Slider>
 
-      {/* Overlay text for current slide if present */}
-      {remote && remote.length > 0 && (
-        <Box sx={{ position: 'absolute', inset: 0, p: { xs: 2, md: 4 }, display: 'flex', alignItems: 'center' }}>
+      {currentMeta && (
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            p: { xs: 2, md: 4 },
+            display: 'flex',
+            alignItems: 'center',
+            pointerEvents: 'none',
+          }}
+        >
           {(() => {
-            const meta = (remote as any[])[index % remote.length];
-            if (!meta) return null;
-            const lang = i18n.language.startsWith('ru') ? 'ru' : (i18n.language.startsWith('tk') || i18n.language.startsWith('tm') ? 'tm' : 'ru');
-            const title = lang === 'ru' ? meta.titleRu : meta.titleTm;
-            const subtitle = lang === 'ru' ? meta.subtitleRu : meta.subtitleTm;
+            const title = localized(currentMeta, 'title');
+            const subtitle = localized(currentMeta, 'subtitle');
             if (!title && !subtitle) return null;
             return (
-              <Box sx={{ maxWidth: { xs: '80%', md: '50%' }, bgcolor: 'rgba(255,255,255,0.85)', p: { xs: 2, md: 3 }, borderRadius: 2 }}>
-                {title && <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>{title}</Typography>}
-                {subtitle && <Typography variant="body1" sx={{ '& p': { m: 0 } }} dangerouslySetInnerHTML={{ __html: subtitle }} />}
+              <Box
+                sx={{
+                  maxWidth: { xs: '80%', md: '50%' },
+                  bgcolor: 'rgba(255,255,255,0.85)',
+                  p: { xs: 2, md: 3 },
+                  borderRadius: 2,
+                }}
+              >
+                {title && (
+                  <Typography variant='h4' sx={{ fontWeight: 800, mb: 1 }}>
+                    {title}
+                  </Typography>
+                )}
+                {subtitle && (
+                  <Typography variant='body1' sx={{ '& p': { m: 0 } }} dangerouslySetInnerHTML={{ __html: subtitle }} />
+                )}
               </Box>
             );
           })()}
         </Box>
       )}
-
-      {/* Dots */}
-      <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 10, display: 'flex', justifyContent: 'center', gap: 1 }}>
-        {Array.from({ length: count }).map((_, i) => (
-          <Box
-            key={i}
-            onClick={() => setIndex(i)}
-            sx={{
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              cursor: 'pointer',
-              bgcolor: i === index ? 'primary.main' : 'grey.400',
-              boxShadow: i === index ? 2 : 0,
-            }}
-          />
-        ))}
-      </Box>
     </Box>
   );
 };

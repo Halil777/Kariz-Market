@@ -164,11 +164,11 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
           <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Old Price" value={compareAt} onChange={(e) => onChangeCompareAt(e.target.value)} fullWidth /></Grid>
           <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Discount (%)" value={discountPct} onChange={(e) => onChangeDiscount(e.target.value)} fullWidth /></Grid>
           <Grid item xs={12} md={6}><TextField select label="Category" value={parentId} onChange={(e) => { setParentId(e.target.value); setCategoryId('') }} fullWidth>
-            <MenuItem value="">—</MenuItem>
+            <MenuItem value="">â€”</MenuItem>
             {parents.map((p) => (<MenuItem key={p.id} value={p.id}>{(p as any).nameTk || p.name}</MenuItem>))}
           </TextField></Grid>
           <Grid item xs={12} md={6}><TextField select label="Subcategory" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} fullWidth disabled={!parentId}>
-            <MenuItem value="">—</MenuItem>
+            <MenuItem value="">â€”</MenuItem>
             {children.map((c) => (<MenuItem key={c.id} value={c.id}>{(c as any).nameTk || c.name}</MenuItem>))}
           </TextField></Grid>
           <Grid item xs={12} md={6}><TextField type="number" label="Stock" value={stock} onChange={(e) => setStock(parseInt(e.target.value, 10) || 0)} fullWidth /></Grid>
