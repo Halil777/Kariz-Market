@@ -114,8 +114,10 @@ let CatalogService = class CatalogService {
     }
     async listProducts(params) {
         const qb = this.prodRepo.createQueryBuilder('p');
-        if (params.categoryId)
-            qb.andWhere('p.category_id = :cid', { cid: params.categoryId });
+        if (params.categoryId) {
+            const ids = await this.collectDescendantCategoryIds(params.categoryId);
+            qb.andWhere('p.category_id IN (:...cids)', { cids: ids });
+        }
         if (params.vendorId === null)
             qb.andWhere('p.vendor_id IS NULL');
         else if (params.vendorId)
@@ -123,6 +125,21 @@ let CatalogService = class CatalogService {
         qb.orderBy('p.created_at', 'DESC').limit(100);
         const products = await qb.getMany();
         return this.mapProductsWithTranslations(products);
+    }
+    async collectDescendantCategoryIds(rootId) {
+        const ids = new Set([rootId]);
+        let frontier = [rootId];
+        for (let i = 0; i < 8 && frontier.length; i++) {
+            const children = await this.catRepo.find({ where: { parentId: (0, typeorm_2.In)(frontier) } });
+            frontier = [];
+            for (const c of children) {
+                if (!ids.has(c.id)) {
+                    ids.add(c.id);
+                    frontier.push(c.id);
+                }
+            }
+        }
+        return Array.from(ids);
     }
     async mapProductsWithTranslations(products) {
         if (!products.length)
@@ -186,8 +203,7 @@ let CatalogService = class CatalogService {
         const size = Math.min(Math.max(Math.floor(Number(limit ?? 10)), 1), 20);
         const baseQuery = this.prodRepo
             .createQueryBuilder('p')
-            .where('p.vendor_id IS NULL')
-            .andWhere('p.status = :status', { status: 'active' });
+            .where('p.status = :status', { status: 'active' });
         const topProducts = await baseQuery.clone().orderBy('p.created_at', 'DESC').limit(size).getMany();
         const bestDeals = await baseQuery
             .clone()
@@ -393,7 +409,7 @@ let CatalogService = class CatalogService {
     async createVendorProduct(vendorId, dto) {
         if (dto.categoryId) {
             const cat = await this.catRepo.findOne({ where: { id: dto.categoryId } });
-            if (!cat || (cat.vendorId ?? null) !== (vendorId ?? null)) {
+            if (!cat || (cat.vendorId !== null && cat.vendorId !== vendorId)) {
                 throw new common_1.ForbiddenException('Invalid category for vendor');
             }
         }
@@ -431,7 +447,7 @@ let CatalogService = class CatalogService {
             throw new common_1.NotFoundException('Product not found');
         if (dto.categoryId) {
             const cat = await this.catRepo.findOne({ where: { id: dto.categoryId } });
-            if (!cat || (cat.vendorId ?? null) !== (vendorId ?? null)) {
+            if (!cat || (cat.vendorId !== null && cat.vendorId !== vendorId)) {
                 throw new common_1.ForbiddenException('Invalid category for vendor');
             }
         }

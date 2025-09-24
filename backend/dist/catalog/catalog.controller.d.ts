@@ -8,6 +8,7 @@ export declare class CatalogController {
     constructor(catalog: CatalogService);
     categories(): Promise<any[]>;
     products(categoryId?: string): Promise<any[]>;
+    productsAll(categoryId?: string): Promise<any[]>;
     productHighlights(limit?: string): Promise<{
         top: any[];
         deals: any[];
@@ -26,7 +27,6 @@ export declare class CatalogController {
     }>;
     vendorCategories(req: any): Promise<any[]>;
     vendorCategoryTree(req: any): Promise<any[]>;
-    createVendorCategory(req: any, dto: CreateCategoryDto): Promise<import("./entities/category.entity").Category>;
     updateVendorCategory(req: any, id: string, dto: UpdateCategoryDto): Promise<import("./entities/category.entity").Category>;
     removeVendorCategory(req: any, id: string): Promise<{
         ok: boolean;

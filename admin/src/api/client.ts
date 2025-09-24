@@ -14,3 +14,15 @@ export const absoluteAssetUrl = (url?: string | null) => {
   if (url.startsWith('/uploads')) return `${backendOrigin}${url}`;
   return url;
 };
+
+// Attach Authorization header if admin access token exists
+api.interceptors.request.use((config) => {
+  try {
+    const token = localStorage.getItem('admin.accessToken');
+    if (token) {
+      config.headers = config.headers || {};
+      (config.headers as any).Authorization = `Bearer ${token}`;
+    }
+  } catch {}
+  return config;
+});

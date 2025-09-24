@@ -21,8 +21,14 @@ export class CatalogController {
 
   @Get('products')
   products(@Query('categoryId') categoryId?: string) {
-    // Global-only products
+    // Global-only products for admin panel
     return this.catalog.listProducts({ categoryId, vendorId: null });
+  }
+
+  // Public browse: include all products (global + vendors)
+  @Get('products/all')
+  productsAll(@Query('categoryId') categoryId?: string) {
+    return this.catalog.listProducts({ categoryId });
   }
 
   @Get('products/highlights')
@@ -98,14 +104,7 @@ export class CatalogController {
     return this.catalog.getCategoryTree(vendorId);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.VendorUser)
-  @Post('vendor/categories')
-  createVendorCategory(@Req() req: any, @Body() dto: CreateCategoryDto) {
-    const vendorId: string | null = req.user?.vendorId || null;
-    if (!vendorId) throw new Error('Missing vendorId in token');
-    return this.catalog.createCategory(dto, vendorId);
-  }
+  // Vendor category creation disabled: only global admins may add categories
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.VendorUser)

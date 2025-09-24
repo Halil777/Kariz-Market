@@ -33,6 +33,9 @@ let CatalogController = class CatalogController {
     products(categoryId) {
         return this.catalog.listProducts({ categoryId, vendorId: null });
     }
+    productsAll(categoryId) {
+        return this.catalog.listProducts({ categoryId });
+    }
     productHighlights(limit) {
         const parsed = limit ? Number.parseInt(limit, 10) : Number.NaN;
         const size = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
@@ -73,12 +76,6 @@ let CatalogController = class CatalogController {
         if (!vendorId)
             throw new Error('Missing vendorId in token');
         return this.catalog.getCategoryTree(vendorId);
-    }
-    createVendorCategory(req, dto) {
-        const vendorId = req.user?.vendorId || null;
-        if (!vendorId)
-            throw new Error('Missing vendorId in token');
-        return this.catalog.createCategory(dto, vendorId);
     }
     updateVendorCategory(req, id, dto) {
         const vendorId = req.user?.vendorId || null;
@@ -137,6 +134,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], CatalogController.prototype, "products", null);
+__decorate([
+    (0, common_1.Get)('products/all'),
+    __param(0, (0, common_1.Query)('categoryId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], CatalogController.prototype, "productsAll", null);
 __decorate([
     (0, common_1.Get)('products/highlights'),
     __param(0, (0, common_1.Query)('limit')),
@@ -219,16 +223,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], CatalogController.prototype, "vendorCategoryTree", null);
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(role_enum_1.Role.VendorUser),
-    (0, common_1.Post)('vendor/categories'),
-    __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_category_dto_1.CreateCategoryDto]),
-    __metadata("design:returntype", void 0)
-], CatalogController.prototype, "createVendorCategory", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(role_enum_1.Role.VendorUser),

@@ -23,6 +23,7 @@ export declare class CatalogService implements OnModuleInit {
         categoryId?: string;
         vendorId?: string | null;
     }): Promise<any[]>;
+    private collectDescendantCategoryIds;
     private mapProductsWithTranslations;
     private serializeProduct;
     getHomeHighlights(limit?: number): Promise<{

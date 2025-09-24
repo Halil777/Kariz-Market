@@ -40,8 +40,7 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
   const [discountPct, setDiscountPct] = useState<number>(0)
   const [stock, setStock] = useState<number>(0)
   const [images, setImages] = useState<string[]>([])
-  const [parentId, setParentId] = useState<string>('')
-  const [categoryId, setCategoryId] = useState<string>('')
+  const [categoryPath, setCategoryPath] = useState<string[]>([])
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
@@ -56,39 +55,62 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
       setDiscountPct(initial.discountPct != null ? Number(initial.discountPct) : 0)
       setStock(initial.stock != null ? Number(initial.stock) : 0)
       setImages((initial.images as any) || [])
-      setCategoryId((initial.categoryId as any) || '')
+      if (initial.categoryId && Array.isArray(tree)) {
+        const chain = findChain(tree as CategoryNode[], String(initial.categoryId))
+        setCategoryPath(chain)
+      } else {
+        setCategoryPath([])
+      }
     } else {
-      setStatus('active'); setSku(''); setNameTk(''); setNameRu(''); setUnit('count'); setPrice(0); setCompareAt(''); setDiscountPct(0); setStock(0); setImages([]); setCategoryId(''); setParentId('');
+      setStatus('active'); setSku(''); setNameTk(''); setNameRu(''); setUnit('count'); setPrice(0); setCompareAt(''); setDiscountPct(0); setStock(0); setImages([]); setCategoryPath([])
     }
-  }, [initial, open])
+  }, [initial, open, tree])
 
-  useEffect(() => {
-    if (!categoryId) { setParentId(''); return }
-    const find = (nodes: CategoryNode[], pid?: string): string | null => {
-      for (const n of nodes) {
-        if (n.id === categoryId) return pid || null
-        const c = n.children && find(n.children, n.id)
-        if (c !== null && c !== undefined) return c
-      }
-      return null
-    }
-    const p = find(tree as CategoryNode[])
-    setParentId(p || '')
-  }, [categoryId, tree])
-
-  const parents = useMemo(() => (tree as CategoryNode[]), [tree])
-  const children = useMemo(() => {
-    if (!parentId) return [] as CategoryNode[]
-    const find = (nodes: CategoryNode[], id: string): CategoryNode | undefined => {
-      for (const n of nodes) {
-        if (n.id === id) return n
-        const f = n.children && find(n.children, id)
-        if (f) return f
+  // Dynamic multi-level category selection
+  function findChain(nodes: CategoryNode[], targetId: string, acc: string[] = []): string[] {
+    for (const n of nodes) {
+      const next = [...acc, n.id]
+      if (n.id === targetId) return next
+      if (n.children?.length) {
+        const sub = findChain(n.children, targetId, next)
+        if (sub.length) return sub
       }
     }
-    const parent = find(tree as CategoryNode[], parentId)
-    return parent?.children || []
-  }, [parentId, tree])
+    return []
+  }
+
+  const levels: CategoryNode[][] = useMemo(() => {
+    const out: CategoryNode[][] = []
+    let options = (tree as CategoryNode[]) || []
+    out.push(options)
+    for (let i = 0; i < categoryPath.length; i++) {
+      const sel = categoryPath[i]
+      const node = sel ? options.find((n) => n.id === sel) : undefined
+      if (node?.children?.length) {
+        options = node.children
+        out.push(options)
+      } else {
+        break
+      }
+    }
+    return out
+  }, [tree, categoryPath])
+
+  const onSelectLevel = (levelIndex: number, id: string) => {
+    setCategoryPath((prev) => {
+      if (!id) return prev.slice(0, levelIndex)
+      const next = prev.slice(0, levelIndex)
+      next[levelIndex] = id
+      return next
+    })
+  }
+
+  const getSelectedCategoryId = () => {
+    for (let i = categoryPath.length - 1; i >= 0; i--) {
+      if (categoryPath[i]) return categoryPath[i]
+    }
+    return undefined
+  }
 
   const onPickImages = async (files: FileList | null) => {
     if (!files) return
@@ -140,7 +162,7 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
       discountPct,
       stock,
       images,
-      categoryId: categoryId || undefined,
+      categoryId: getSelectedCategoryId(),
       status,
     }
     onSubmit(payload)
@@ -163,14 +185,20 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
           <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Price" value={price} onChange={(e) => onChangePrice(e.target.value)} fullWidth /></Grid>
           <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Old Price" value={compareAt} onChange={(e) => onChangeCompareAt(e.target.value)} fullWidth /></Grid>
           <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Discount (%)" value={discountPct} onChange={(e) => onChangeDiscount(e.target.value)} fullWidth /></Grid>
-          <Grid item xs={12} md={6}><TextField select label="Category" value={parentId} onChange={(e) => { setParentId(e.target.value); setCategoryId('') }} fullWidth>
-            <MenuItem value="">â€”</MenuItem>
-            {parents.map((p) => (<MenuItem key={p.id} value={p.id}>{(p as any).nameTk || p.name}</MenuItem>))}
-          </TextField></Grid>
-          <Grid item xs={12} md={6}><TextField select label="Subcategory" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} fullWidth disabled={!parentId}>
-            <MenuItem value="">â€”</MenuItem>
-            {children.map((c) => (<MenuItem key={c.id} value={c.id}>{(c as any).nameTk || c.name}</MenuItem>))}
-          </TextField></Grid>
+          {levels.map((opts, i) => (
+            <Grid key={i} item xs={12} md={6}>
+              <TextField select fullWidth label={i === 0 ? 'Category' : `Subcategory ${i}`}
+                value={categoryPath[i] || ''}
+                onChange={(e) => onSelectLevel(i, e.target.value)}
+                disabled={!opts.length}
+              >
+                <MenuItem value="">{i === 0 ? 'None' : '—'}</MenuItem>
+                {opts.map((n) => (
+                  <MenuItem key={n.id} value={n.id}>{(n as any).nameTk || n.name}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          ))}
           <Grid item xs={12} md={6}><TextField type="number" label="Stock" value={stock} onChange={(e) => setStock(parseInt(e.target.value, 10) || 0)} fullWidth /></Grid>
           <Grid item xs={12} md={6}><TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value as any)} fullWidth>
             <MenuItem value="active">Active</MenuItem>
@@ -201,3 +229,4 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
     </Dialog>
   )
 }
+

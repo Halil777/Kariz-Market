@@ -44,6 +44,7 @@ const coupons_module_1 = require("./coupons/coupons.module");
 const coupon_entity_1 = require("./coupons/entities/coupon.entity");
 const reports_module_1 = require("./reports/reports.module");
 const banners_module_1 = require("./banners/banners.module");
+const seed_admin_provider_1 = require("./users/seed-admin.provider");
 const banner_entity_1 = require("./banners/entities/banner.entity");
 let AppModule = class AppModule {
 };
@@ -103,7 +104,7 @@ exports.AppModule = AppModule = __decorate([
             banners_module_1.BannersModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        providers: [app_service_1.AppService, seed_admin_provider_1.SeedAdminProvider],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

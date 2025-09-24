@@ -11,6 +11,7 @@ import { CouponsPage } from '@/pages/Coupons';
 import { ReportsPage } from '@/pages/Reports';
 import { BannersPage } from '@/pages/Banners';
 import { SettingsPage } from '@/pages/Settings';
+import { LoginPage } from '@/pages/Login';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -27,6 +28,7 @@ export const AppRouter: React.FC = () => {
           <Route path="/banners" element={<BannersPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/login" element={<LoginPage />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>

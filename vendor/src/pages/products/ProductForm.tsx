@@ -28,6 +28,7 @@ export default function ProductForm() {
   const [stock, setStock] = useState<number>(0)
   const [images, setImages] = useState<string[]>([])
   const [categoryId, setCategoryId] = useState<string>('')
+  const [deeperPath, setDeeperPath] = useState<string[]>([])
   const [parentId, setParentId] = useState<string>('')
   const [error, setError] = useState<string>('')
 
@@ -60,6 +61,7 @@ export default function ProductForm() {
     }
     const p = find(tree as CategoryNode[])
     setParentId(p || '')
+    setDeeperPath([])
   }, [categoryId, tree])
 
   const parents = useMemo(() => (tree as CategoryNode[]), [tree])
@@ -75,6 +77,40 @@ export default function ProductForm() {
     const parent = find(tree as CategoryNode[], parentId)
     return parent?.children || []
   }, [parentId, tree])
+
+  // Build deeper subcategory levels beyond the first subcategory select
+  const findNode = (nodes: CategoryNode[], id: string): CategoryNode | undefined => {
+    for (const n of nodes) {
+      if (n.id === id) return n
+      const f = n.children && findNode(n.children, id)
+      if (f) return f
+    }
+  }
+  const startNode = useMemo(() => categoryId ? findNode(tree as CategoryNode[], categoryId) : undefined, [tree, categoryId])
+  const deeperLevels = useMemo(() => {
+    const levels: CategoryNode[][] = []
+    let options = (startNode?.children || []) as CategoryNode[]
+    if (options.length) levels.push(options)
+    for (let i = 0; i < deeperPath.length; i++) {
+      const sel = deeperPath[i]
+      const node = options.find((n) => n.id === sel)
+      if (node?.children?.length) {
+        options = node.children
+        levels.push(options)
+      } else {
+        break
+      }
+    }
+    return levels
+  }, [startNode, deeperPath])
+  const onSelectDeeper = (levelIndex: number, id: string) => {
+    setDeeperPath((prev) => {
+      if (!id) return prev.slice(0, levelIndex)
+      const next = prev.slice(0, levelIndex)
+      next[levelIndex] = id
+      return next
+    })
+  }
 
   const mCreate = useMutation({ mutationFn: createProduct, onSuccess: (p) => { qc.invalidateQueries({ queryKey: ['vendor','products'] }); navigate(`/products/${p.id}`) }, onError: (e:any) => setError(String(e?.message || e)) })
   const mUpdate = useMutation({ mutationFn: (payload: any) => updateProduct(id!, payload), onSuccess: (p) => { qc.invalidateQueries({ queryKey: ['vendor','products'] }); navigate(`/products/${p.id}`) }, onError: (e:any) => setError(String(e?.message || e)) })
@@ -93,6 +129,7 @@ export default function ProductForm() {
   const submit = () => {
     setError('')
     if (!nameTk && !nameRu) { setError('Name (TM) or Name (RU) required'); return }
+    const selectedCategory = deeperPath.length ? deeperPath[deeperPath.length - 1] : categoryId
     const payload: Partial<ProductDto> & any = {
       sku: sku || undefined,
       nameTk: nameTk || undefined,
@@ -103,7 +140,7 @@ export default function ProductForm() {
       discountPct,
       stock,
       images,
-      categoryId: categoryId || undefined,
+      categoryId: selectedCategory || undefined,
       status,
     }
     if (editing) mUpdate.mutate(payload)
@@ -187,6 +224,20 @@ export default function ProductForm() {
                     ))}
                   </TextField>
                 </Grid>
+                {deeperLevels.map((opts, i) => (
+                  <Grid key={i} size={{ xs: 12, sm: 6 }}>
+                    <TextField fullWidth select label={`Subcategory ${i + 2}`}
+                      value={deeperPath[i] || ''}
+                      onChange={(e) => onSelectDeeper(i, e.target.value)}
+                      disabled={!opts.length}
+                    >
+                      <MenuItem value="">—</MenuItem>
+                      {opts.map((n) => (
+                        <MenuItem key={n.id} value={n.id}>{(n as any).nameTk || n.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                ))}
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField fullWidth label="Stock" type="number" inputProps={{ min: 0 }} value={stock} onChange={(e) => setStock(parseInt(e.target.value || '0', 10))} />
                 </Grid>

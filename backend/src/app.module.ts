@@ -35,6 +35,7 @@ import { CouponsModule } from './coupons/coupons.module';
 import { Coupon } from './coupons/entities/coupon.entity';
 import { ReportsModule } from './reports/reports.module';
 import { BannersModule } from './banners/banners.module';
+import { SeedAdminProvider } from './users/seed-admin.provider';
 import { Banner } from './banners/entities/banner.entity';
 
 @Module({
@@ -92,6 +93,6 @@ import { Banner } from './banners/entities/banner.entity';
     BannersModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, SeedAdminProvider],
 })
 export class AppModule {}

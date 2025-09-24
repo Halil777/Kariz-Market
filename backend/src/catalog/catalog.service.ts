@@ -113,12 +113,31 @@ export class CatalogService implements OnModuleInit {
 
   async listProducts(params: { categoryId?: string; vendorId?: string | null }) {
     const qb = this.prodRepo.createQueryBuilder('p');
-    if (params.categoryId) qb.andWhere('p.category_id = :cid', { cid: params.categoryId });
+    if (params.categoryId) {
+      const ids = await this.collectDescendantCategoryIds(params.categoryId);
+      qb.andWhere('p.category_id IN (:...cids)', { cids: ids });
+    }
     if (params.vendorId === null) qb.andWhere('p.vendor_id IS NULL');
     else if (params.vendorId) qb.andWhere('p.vendor_id = :vid', { vid: params.vendorId });
     qb.orderBy('p.created_at', 'DESC').limit(100);
     const products = await qb.getMany();
     return this.mapProductsWithTranslations(products);
+  }
+
+  private async collectDescendantCategoryIds(rootId: string): Promise<string[]> {
+    const ids = new Set<string>([rootId]);
+    let frontier = [rootId];
+    for (let i = 0; i < 8 && frontier.length; i++) {
+      const children = await this.catRepo.find({ where: { parentId: In(frontier) } });
+      frontier = [];
+      for (const c of children) {
+        if (!ids.has(c.id)) {
+          ids.add(c.id);
+          frontier.push(c.id);
+        }
+      }
+    }
+    return Array.from(ids);
   }
 
   private async mapProductsWithTranslations(products: Product[]): Promise<any[]> {
@@ -194,8 +213,7 @@ export class CatalogService implements OnModuleInit {
     const size = Math.min(Math.max(Math.floor(Number(limit ?? 10)), 1), 20);
     const baseQuery = this.prodRepo
       .createQueryBuilder('p')
-      .where('p.vendor_id IS NULL')
-      .andWhere('p.status = :status', { status: 'active' });
+      .where('p.status = :status', { status: 'active' });
 
     const topProducts = await baseQuery.clone().orderBy('p.created_at', 'DESC').limit(size).getMany();
     const bestDeals = await baseQuery
@@ -388,7 +406,8 @@ export class CatalogService implements OnModuleInit {
   async createVendorProduct(vendorId: string, dto: CreateProductDto) {
     if (dto.categoryId) {
       const cat = await this.catRepo.findOne({ where: { id: dto.categoryId } });
-      if (!cat || (cat.vendorId ?? null) !== (vendorId ?? null)) {
+      // Allow assigning to global categories (vendorId === null) or vendor-owned categories
+      if (!cat || (cat.vendorId !== null && cat.vendorId !== vendorId)) {
         throw new ForbiddenException('Invalid category for vendor');
       }
     }
@@ -423,7 +442,7 @@ export class CatalogService implements OnModuleInit {
     if (!existing) throw new NotFoundException('Product not found');
     if (dto.categoryId) {
       const cat = await this.catRepo.findOne({ where: { id: dto.categoryId } });
-      if (!cat || (cat.vendorId ?? null) !== (vendorId ?? null)) {
+      if (!cat || (cat.vendorId !== null && cat.vendorId !== vendorId)) {
         throw new ForbiddenException('Invalid category for vendor');
       }
     }

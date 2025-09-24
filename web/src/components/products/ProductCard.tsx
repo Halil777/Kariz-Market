@@ -47,6 +47,7 @@ const unitLabel = (unit: string | undefined, t: (key: string) => string) => {
 export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
   const { i18n, t } = useTranslation();
   const language: 'ru' | 'tk' = i18n.language?.toLowerCase().startsWith('ru') ? 'ru' : 'tk';
+  const [imgIndex, setImgIndex] = React.useState(0);
 
   if (loading) {
     return (
@@ -75,8 +76,18 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
   const discount = product.discountPct && Number(product.discountPct) > 0
     ? Math.round(Number(product.discountPct))
     : null;
-  const image = absoluteAssetUrl(product.images?.[0]);
+  const images = Array.isArray(product.images) && product.images.length ? product.images : [];
+  const image = absoluteAssetUrl(images[imgIndex]);
   const unit = unitLabel(product.unit, t);
+
+  // Compute a sliding window of up to 5 dots with active centered
+  const dotIndices = React.useMemo(() => {
+    const n = images.length;
+    if (n <= 5) return Array.from({ length: n }, (_, i) => i);
+    if (imgIndex <= 2) return [0, 1, 2, 3, 4];
+    if (imgIndex >= n - 3) return [n - 5, n - 4, n - 3, n - 2, n - 1];
+    return [imgIndex - 2, imgIndex - 1, imgIndex, imgIndex + 1, imgIndex + 2];
+  }, [images.length, imgIndex]);
 
   return (
     <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -93,6 +104,7 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
             p: 2,
           }}
         >
+          {/* Hover only on dots to change image */}
           {image ? (
             <Box
               component="img"
@@ -123,6 +135,25 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
           >
             <FavoriteBorderIcon fontSize="small" />
           </IconButton>
+          {/* Dots indicator under image (max 5 visible) */}
+          {images.length > 1 && (
+            <Stack direction="row" spacing={0.75} sx={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)' }}>
+              {dotIndices.map((idx) => (
+                <Box
+                  key={idx}
+                  onMouseEnter={() => setImgIndex(idx)}
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    bgcolor: idx === imgIndex ? 'primary.main' : 'rgba(255,255,255,0.8)',
+                    boxShadow: 1,
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </Stack>
+          )}
         </Box>
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 0.75, flexGrow: 1, width: '100%' }}>
           <Typography variant="caption" color="text.secondary" noWrap>

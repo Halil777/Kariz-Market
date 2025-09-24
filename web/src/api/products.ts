@@ -28,3 +28,8 @@ export const fetchHomeHighlights = async (limit = 10) => {
   });
   return data;
 };
+
+export const fetchProducts = async (categoryId?: string) => {
+  const { data } = await api.get<ProductSummary[]>('/products/all', { params: { categoryId } })
+  return data
+}
