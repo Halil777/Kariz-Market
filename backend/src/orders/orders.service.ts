@@ -11,6 +11,9 @@ import { OrderStatus } from './enums/order-status.enum';
 import { User } from '../users/entities/user.entity';
 import { ProductVariant } from '../catalog/entities/product-variant.entity';
 import { Vendor } from '../vendors/entities/vendor.entity';
+import { OrderItem } from './entities/order-item.entity';
+import { Payment } from './entities/payment.entity';
+import { Product } from '../catalog/entities/product.entity';
 
 type SerializeOptions = {
   includeCustomer?: boolean;
@@ -62,6 +65,8 @@ export class OrdersService {
     @InjectRepository(User) private readonly usersRepo: Repository<User>,
     @InjectRepository(ProductVariant)
     private readonly variantsRepo: Repository<ProductVariant>,
+    @InjectRepository(Product)
+    private readonly productsRepo: Repository<Product>,
     @InjectRepository(Vendor) private readonly vendorsRepo: Repository<Vendor>,
   ) {}
 
@@ -72,6 +77,123 @@ export class OrdersService {
       relations: ['items'],
     });
     return this.serializeOrders(orders, { includeCustomer: false });
+  }
+
+  async placeOrder(
+    userId: string,
+    payload: { items: Array<{ variantId: string; qty: number }>; paymentMethod: 'cash' | 'online'; note?: string | null },
+  ): Promise<SerializedOrder> {
+    if (!payload.items || payload.items.length === 0) {
+      throw new BadRequestException('Order must include at least one item');
+    }
+
+    const aggregated = new Map<string, number>();
+    for (const item of payload.items) {
+      const variantId = item.variantId?.trim();
+      if (!variantId) continue;
+      const qty = Number(item.qty);
+      if (!Number.isInteger(qty) || qty <= 0) {
+        throw new BadRequestException('Item quantities must be positive integers');
+      }
+      aggregated.set(variantId, (aggregated.get(variantId) ?? 0) + qty);
+    }
+
+    if (aggregated.size === 0) {
+      throw new BadRequestException('Order must include at least one valid item');
+    }
+
+    const variantIds = Array.from(aggregated.keys());
+    const variants = await this.variantsRepo.find({
+      where: { id: In(variantIds) },
+      relations: ['product'],
+    });
+    const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
+
+    const missingVariantIds = variantIds.filter((id) => !variantMap.has(id));
+    const fallbackProducts = missingVariantIds.length
+      ? await this.productsRepo.find({ where: { id: In(missingVariantIds) } })
+      : [];
+    const productMap = new Map(fallbackProducts.map((product) => [product.id, product]));
+
+    const itemPayloads: Array<{
+      variantId: string;
+      qty: number;
+      price: number;
+      vendorId: string | null;
+    }> = [];
+
+    for (const [variantId, qty] of aggregated.entries()) {
+      const variant = variantMap.get(variantId);
+      const product = variant?.product ?? productMap.get(variantId);
+
+      if (!variant && !product) {
+        throw new NotFoundException('One of the requested products could not be found');
+      }
+
+      const priceSource = variant?.price ?? product?.price;
+      const price = Number(priceSource ?? 0);
+      if (!Number.isFinite(price) || price <= 0) {
+        throw new BadRequestException('Product pricing is not available at the moment');
+      }
+
+      const vendorId = variant?.product?.vendorId ?? product?.vendorId ?? null;
+
+      itemPayloads.push({ variantId, qty, price, vendorId });
+    }
+
+    const total = itemPayloads.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const currency = 'TMT';
+
+    const savedOrder = await this.repo.manager.transaction(async (manager) => {
+      const orderRepo = manager.getRepository(Order);
+      const itemsRepo = manager.getRepository(OrderItem);
+      const paymentsRepo = manager.getRepository(Payment);
+
+      const order = orderRepo.create({
+        userId,
+        status: OrderStatus.Pending,
+        total: total.toFixed(2),
+        currency,
+        cancellationReason: null,
+      });
+      const persistedOrder = await orderRepo.save(order);
+
+      const orderItems = itemPayloads.map((item) =>
+        itemsRepo.create({
+          orderId: persistedOrder.id,
+          vendorId: item.vendorId,
+          variantId: item.variantId,
+          qty: item.qty,
+          unitPrice: item.price.toFixed(2),
+          subtotal: (item.price * item.qty).toFixed(2),
+        }),
+      );
+      await itemsRepo.save(orderItems);
+
+      const provider = payload.paymentMethod === 'online' ? 'online_on_delivery' : 'cash_on_delivery';
+      const payment = paymentsRepo.create({
+        orderId: persistedOrder.id,
+        provider,
+        status: 'pending',
+        amount: total.toFixed(2),
+        currency,
+        providerRef: null,
+      });
+      await paymentsRepo.save(payment);
+
+      return persistedOrder;
+    });
+
+    const orderWithItems = await this.repo.findOne({
+      where: { id: savedOrder.id },
+      relations: ['items'],
+    });
+    if (!orderWithItems) {
+      throw new NotFoundException('Order not found after creation');
+    }
+
+    const [serialized] = await this.serializeOrders([orderWithItems], { includeCustomer: false });
+    return serialized;
   }
 
   async listRecentForUser(userId: string, limit = 5): Promise<SerializedOrder[]> {
@@ -277,11 +399,22 @@ export class OrdersService {
       : [];
     const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
 
+    const missingVariantIds = variantIds.filter((id) => !variantMap.has(id));
+    const fallbackProducts = missingVariantIds.length
+      ? await this.productsRepo.find({
+          where: { id: In(missingVariantIds) },
+          relations: ['translations'],
+        })
+      : [];
+    const fallbackProductMap = new Map(fallbackProducts.map((product) => [product.id, product]));
+
     const vendorIds = new Set<string>();
     for (const item of allItems) {
       if (item.vendorId) vendorIds.add(item.vendorId);
       const variant = variantMap.get(item.variantId);
       if (variant?.product?.vendorId) vendorIds.add(variant.product.vendorId);
+      const fallbackProduct = fallbackProductMap.get(item.variantId);
+      if (fallbackProduct?.vendorId) vendorIds.add(fallbackProduct.vendorId);
     }
 
     const vendorEntities = vendorIds.size
@@ -302,7 +435,7 @@ export class OrdersService {
       const items: SerializedItem[] = [];
       for (const item of order.items || []) {
         const variant = variantMap.get(item.variantId);
-        const product = variant?.product;
+        const product = variant?.product ?? fallbackProductMap.get(item.variantId);
         const vendorId = item.vendorId || product?.vendorId || null;
         if (options.vendorScope && vendorId !== options.vendorScope) continue;
 
