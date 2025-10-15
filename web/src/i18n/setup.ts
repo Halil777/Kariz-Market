@@ -45,6 +45,9 @@ const resources = {
       product: {
         discountBadge: '-{{value}}%',
         wishlist: 'Halanlaryma goş',
+        addToCart: 'Sebede goş',
+        decreaseQty: 'Mukdaryny azaldyň',
+        increaseQty: 'Mukdaryny artdyryň',
         units: {
           kg: 'kg',
           count: 'san',
@@ -52,6 +55,15 @@ const resources = {
         },
         untitled: 'Ady ýok haryt',
         uncategorized: 'Kategoriýasyz',
+        specsTitle: 'Harydyň häsiýetleri',
+        specsEmpty: 'Häzirki wagtda häsiýetler ýok.',
+        vendorLabel: 'Tedarikçi',
+        vendorMarketplace: 'Marketplace satyjysy',
+        vendorGlobal: 'Global',
+        skuLabel: 'SKU',
+        recommendationsTitle: 'Maslahat berlen harytlar',
+        recommendationsLoading: 'Arzanladyşly harytlar ýüklenýär...',
+        recommendationsEmpty: 'Arzanladyşly haryt tapylmady.',
       },
       language: {
         turkmen: 'Türkmençe',
@@ -105,6 +117,9 @@ const resources = {
       product: {
         discountBadge: '-{{value}}%',
         wishlist: 'В избранное',
+        addToCart: 'Добавить в корзину',
+        decreaseQty: 'Уменьшить количество',
+        increaseQty: 'Увеличить количество',
         units: {
           kg: 'кг',
           count: 'шт',
@@ -112,6 +127,15 @@ const resources = {
         },
         untitled: 'Без названия',
         uncategorized: 'Без категории',
+        specsTitle: 'Характеристики',
+        specsEmpty: 'Характеристики не указаны.',
+        vendorLabel: 'Поставщик',
+        vendorMarketplace: 'Продавец маркетплейса',
+        vendorGlobal: 'Глобальный',
+        skuLabel: 'Артикул',
+        recommendationsTitle: 'Рекомендуемые товары',
+        recommendationsLoading: 'Загружаем товары со скидкой...',
+        recommendationsEmpty: 'Скидочных товаров пока нет.',
       },
       language: {
         turkmen: 'Туркменский',
@@ -165,6 +189,9 @@ const resources = {
       product: {
         discountBadge: '-{{value}}%',
         wishlist: 'Add to wishlist',
+        addToCart: 'Add to cart',
+        decreaseQty: 'Decrease quantity',
+        increaseQty: 'Increase quantity',
         units: {
           kg: 'kg',
           count: 'pcs',
@@ -172,6 +199,15 @@ const resources = {
         },
         untitled: 'Untitled product',
         uncategorized: 'Uncategorized',
+        specsTitle: 'Characteristics',
+        specsEmpty: 'No characteristics provided.',
+        vendorLabel: 'Vendor',
+        vendorMarketplace: 'Marketplace vendor',
+        vendorGlobal: 'Global',
+        skuLabel: 'SKU',
+        recommendationsTitle: 'Recommended products',
+        recommendationsLoading: 'Loading discounted items...',
+        recommendationsEmpty: 'No discounted products available right now.',
       },
       language: {
         turkmen: 'Turkmen',
