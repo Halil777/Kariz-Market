@@ -21,7 +21,7 @@ export class VendorsController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@Req() req: any) {
-    return this.vendors.getMe(req.user.sub);
+    return this.vendors.getMe(req.user.id);
   }
 
   @Patch(':id')

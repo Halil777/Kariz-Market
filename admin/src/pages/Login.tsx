@@ -9,19 +9,41 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const submit = async () => {
-    setError('')
+  const clearStoredSession = () => {
     try {
-      const res = await login(email, password)
+      localStorage.removeItem('admin.accessToken')
+      localStorage.removeItem('admin.refreshToken')
+      localStorage.removeItem('admin.me')
+    } catch {}
+  }
+
+  const parseError = (err: any) => {
+    const message = err?.response?.data?.message || err?.message || err?.toString?.() || 'Login failed'
+    return Array.isArray(message) ? message.join(', ') : String(message)
+  }
+
+  const submit = async () => {
+    const trimmedEmail = email.trim()
+    setError('')
+    if (!trimmedEmail || !password) {
+      setError('Email and password are required')
+      return
+    }
+
+    try {
+      const res = await login(trimmedEmail, password)
       localStorage.setItem('admin.accessToken', res.accessToken)
       localStorage.setItem('admin.refreshToken', res.refreshToken)
-      try {
-        const user = await me()
-        localStorage.setItem('admin.me', JSON.stringify(user))
-      } catch {}
+
+      const profile = await me()
+      if (!['admin', 'super_admin'].includes(profile.role)) {
+        throw new Error('You do not have permission to access the admin panel.')
+      }
+      localStorage.setItem('admin.me', JSON.stringify(profile))
       navigate('/', { replace: true })
-    } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Login failed')
+    } catch (err: any) {
+      clearStoredSession()
+      setError(parseError(err))
     }
   }
 
