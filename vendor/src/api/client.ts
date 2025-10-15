@@ -5,7 +5,7 @@ export type ApiClient = {
   delete<T>(path: string): Promise<T>
 }
 
-const BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api'
+export const BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api'
 
 function getAccessToken(): string | null {
   try {
