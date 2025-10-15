@@ -1,15 +1,12 @@
 import React from 'react';
-import {
-  Card,
-  CardActionArea,
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Skeleton,
-  Stack,
-} from '@mui/material';
+import { Card, CardActionArea, Box, Typography, Chip, IconButton, Skeleton, Stack } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggle as toggleWishlist } from '../../store/slices/wishlistSlice';
+import type { RootState } from '../../store/store';
+import { toggleWishlist as apiToggleWishlist } from '../../api/wishlist';
 import { useTranslation } from 'react-i18next';
 import { absoluteAssetUrl } from '../../api/client';
 import type { ProductSummary } from '../../api/products';
@@ -79,6 +76,13 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
   const images = Array.isArray(product.images) && product.images.length ? product.images : [];
   const image = absoluteAssetUrl(images[imgIndex]);
   const unit = unitLabel(product.unit, t);
+  const dispatch = useDispatch();
+  const isWished = useSelector((s: RootState) => s.wishlist.ids.includes(product.id));
+  const onToggleWish = async (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    dispatch(toggleWishlist(product.id));
+    try { await apiToggleWishlist(product.id); } catch {}
+  };
 
   // Compute a sliding window of up to 5 dots with active centered
   const dotIndices = React.useMemo(() => {
@@ -91,7 +95,7 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
 
   return (
     <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <CardActionArea sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', height: '100%' }}>
+      <CardActionArea component={RouterLink} to={product ? `/product/${product.id}` : '#'} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', height: '100%' }}>
         <Box
           sx={{
             position: 'relative',
@@ -132,8 +136,9 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
             size="small"
             sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(255,255,255,0.85)' }}
             aria-label={t('product.wishlist')}
+            onClick={onToggleWish}
           >
-            <FavoriteBorderIcon fontSize="small" />
+            {isWished ? <FavoriteIcon fontSize="small" color="error" /> : <FavoriteBorderIcon fontSize="small" />}
           </IconButton>
           {/* Dots indicator under image (max 5 visible) */}
           {images.length > 1 && (

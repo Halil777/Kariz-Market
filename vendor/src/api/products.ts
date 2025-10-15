@@ -14,6 +14,7 @@ export type ProductDto = {
   stock: number
   nameTk?: string
   nameRu?: string
+  specs?: Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>
 }
 
 export const fetchProducts = async (categoryId?: string): Promise<ProductDto[]> => {
@@ -45,4 +46,3 @@ export const updateProduct = async (id: string, payload: Partial<ProductDto>): P
 export const deleteProduct = async (id: string): Promise<{ ok: boolean }> => {
   return await api.delete<{ ok: boolean }>(`/vendor/products/${id}`)
 }
-

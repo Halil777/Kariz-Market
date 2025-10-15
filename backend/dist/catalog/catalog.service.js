@@ -126,6 +126,23 @@ let CatalogService = class CatalogService {
         const products = await qb.getMany();
         return this.mapProductsWithTranslations(products);
     }
+    toSlug(name) {
+        return (name || 'category')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-');
+    }
+    async ensureUniqueCategorySlug(base, excludeId) {
+        let candidate = base;
+        let n = 2;
+        while (true) {
+            const exists = await this.catRepo.findOne({ where: excludeId ? { slug: candidate, id: (0, typeorm_2.Not)(excludeId) } : { slug: candidate } });
+            if (!exists)
+                return candidate;
+            candidate = `${base}-${n++}`;
+        }
+    }
     async collectDescendantCategoryIds(rootId) {
         const ids = new Set([rootId]);
         let frontier = [rootId];
@@ -197,6 +214,7 @@ let CatalogService = class CatalogService {
             nameRu: names?.ru ?? null,
             categoryNameTk: categoryNames?.tk ?? null,
             categoryNameRu: categoryNames?.ru ?? null,
+            specs: product.specs || [],
         };
     }
     async getHomeHighlights(limit = 10) {
@@ -313,11 +331,7 @@ let CatalogService = class CatalogService {
             }
         }
         const nameBase = dto.name ?? dto.nameTk ?? dto.nameRu ?? 'category';
-        const slug = nameBase
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .trim()
-            .replace(/\s+/g, '-');
+        const slug = await this.ensureUniqueCategorySlug(this.toSlug(nameBase));
         const entity = this.catRepo.create({
             name: nameBase,
             slug,
@@ -358,11 +372,7 @@ let CatalogService = class CatalogService {
         if (dto.imageUrl !== undefined)
             patch.imageUrl = dto.imageUrl;
         if (dto.name) {
-            patch.slug = dto.name
-                .toLowerCase()
-                .replace(/[^a-z0-9\s-]/g, '')
-                .trim()
-                .replace(/\s+/g, '-');
+            patch.slug = await this.ensureUniqueCategorySlug(this.toSlug(dto.name), id);
         }
         await this.catRepo.update({ id }, patch);
         const saved = await this.catRepo.findOne({ where: { id } });
@@ -430,6 +440,7 @@ let CatalogService = class CatalogService {
             compareAt: pricing.compareAt ?? null,
             discountPct: pricing.discountPct ?? (dto.discountPct != null ? String(dto.discountPct) : '0'),
             stock: dto.stock,
+            specs: Array.isArray(dto.specs) ? dto.specs : [],
         });
         const saved = await this.prodRepo.save(entity);
         const translations = [];
@@ -470,6 +481,8 @@ let CatalogService = class CatalogService {
             patch.stock = dto.stock;
         if (dto.categoryId !== undefined)
             patch.categoryId = dto.categoryId;
+        if (dto.specs !== undefined)
+            patch.specs = Array.isArray(dto.specs) ? dto.specs : [];
         if ('price' in patch || 'compareAt' in patch || 'discountPct' in patch) {
             const finalPricing = this.computePricing({
                 price: patch.price ?? existing.price,
@@ -521,6 +534,15 @@ let CatalogService = class CatalogService {
             throw new common_1.NotFoundException('Product not found');
         return dto;
     }
+    async getAnyProduct(id) {
+        const product = await this.prodRepo.findOne({ where: { id } });
+        if (!product)
+            throw new common_1.NotFoundException('Product not found');
+        const [dto] = await this.mapProductsWithTranslations([product]);
+        if (!dto)
+            throw new common_1.NotFoundException('Product not found');
+        return dto;
+    }
     async createGlobalProduct(dto) {
         if (dto.categoryId) {
             const cat = await this.catRepo.findOne({ where: { id: dto.categoryId } });
@@ -540,6 +562,7 @@ let CatalogService = class CatalogService {
             compareAt: pricing.compareAt ?? null,
             discountPct: pricing.discountPct ?? (dto.discountPct != null ? String(dto.discountPct) : '0'),
             stock: dto.stock,
+            specs: Array.isArray(dto.specs) ? dto.specs : [],
         });
         const saved = await this.prodRepo.save(entity);
         const trs = [];
@@ -579,6 +602,8 @@ let CatalogService = class CatalogService {
             patch.stock = dto.stock;
         if (dto.categoryId !== undefined)
             patch.categoryId = dto.categoryId;
+        if (dto.specs !== undefined)
+            patch.specs = Array.isArray(dto.specs) ? dto.specs : [];
         if ('price' in patch || 'compareAt' in patch || 'discountPct' in patch) {
             const finalPricing = this.computePricing({ price: patch.price ?? existing.price, compareAt: patch.compareAt ?? existing.compareAt ?? null, discountPct: patch.discountPct ?? existing.discountPct });
             if (finalPricing.price !== undefined)

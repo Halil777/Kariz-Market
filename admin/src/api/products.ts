@@ -16,6 +16,7 @@ export type ProductDto = {
   stock: number
   nameTk?: string | null
   nameRu?: string | null
+  specs?: Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>
 }
 
 export const fetchProducts = async (): Promise<ProductDto[]> => {
@@ -34,6 +35,7 @@ const normalisePayload = (payload: Partial<ProductDto>) => {
   delete body.categoryNameTk
   delete body.categoryNameRu
   delete body.vendorId
+  // specs is accepted as-is
   if (body.price !== undefined) body.price = String(body.price)
   if (body.compareAt !== undefined && body.compareAt !== null) body.compareAt = String(body.compareAt)
   if (body.discountPct !== undefined) body.discountPct = String(body.discountPct)

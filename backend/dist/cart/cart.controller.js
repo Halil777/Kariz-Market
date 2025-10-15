@@ -29,6 +29,17 @@ let CartController = class CartController {
     remove(req, id) {
         return this.cart.removeItem(req.user.id, id);
     }
+    getPublic(body) {
+        return this.cart.getOrCreateDeviceCart(body.deviceId);
+    }
+    addPublic(body) {
+        return this.cart.addItemByDevice(body.deviceId, body.productId, body.price, body.qty ?? 1);
+    }
+    removePublic(body) {
+        return this.cart.removeItemByDevice(body.deviceId, body.itemId);
+    }
+    groupRegistered() { return this.cart.groupRegistered(); }
+    groupGuests() { return this.cart.groupGuests(); }
 };
 exports.CartController = CartController;
 __decorate([
@@ -54,6 +65,41 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], CartController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)('public/get'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CartController.prototype, "getPublic", null);
+__decorate([
+    (0, common_1.Post)('public/items'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CartController.prototype, "addPublic", null);
+__decorate([
+    (0, common_1.Post)('public/items/remove'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CartController.prototype, "removePublic", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('admin/registered'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], CartController.prototype, "groupRegistered", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('admin/guests'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], CartController.prototype, "groupGuests", null);
 exports.CartController = CartController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('cart'),

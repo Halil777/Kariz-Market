@@ -1,8 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Card, CardContent, Grid, TextField, Typography, useTheme } from '@mui/material';
+import { Box, Card, CardContent, Grid, TextField, Typography, useTheme, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { getOverview } from '@/api/reports';
+import { getWishlistRegistered, getWishlistGuests, getCartRegistered, getCartGuests } from '@/api/engagement';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -20,6 +21,10 @@ export const ReportsPage: React.FC = () => {
     queryKey: ['reports','overview', from, to],
     queryFn: () => getOverview(from, to),
   });
+  const { data: wlReg = [] } = useQuery({ queryKey: ['engagement','wishlist','registered'], queryFn: getWishlistRegistered });
+  const { data: wlGuest = [] } = useQuery({ queryKey: ['engagement','wishlist','guests'], queryFn: getWishlistGuests });
+  const { data: cartReg = [] } = useQuery({ queryKey: ['engagement','cart','registered'], queryFn: getCartRegistered });
+  const { data: cartGuest = [] } = useQuery({ queryKey: ['engagement','cart','guests'], queryFn: getCartGuests });
 
   const totals = data?.totals || { revenue: 0, orders: 0, avgOrderValue: 0, newCustomers: 0 };
   const chartData = (data?.salesByDay || []).map((d) => ({ name: d.date.slice(5), total: d.revenue }));
@@ -57,6 +62,45 @@ export const ReportsPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Grid container spacing={2} sx={{ mt: 2 }}>
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>Wishlist — Registered</Typography>
+              <Table size="small"><TableHead><TableRow><TableCell>User ID</TableCell><TableCell align="right">Items</TableCell></TableRow></TableHead><TableBody>
+                {wlReg.map((r:any) => (<TableRow key={r.userId}><TableCell>{r.userId}</TableCell><TableCell align="right">{r.count}</TableCell></TableRow>))}
+              </TableBody></Table></CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>Wishlist — Guests</Typography>
+              <Table size="small"><TableHead><TableRow><TableCell>Device ID</TableCell><TableCell align="right">Items</TableCell></TableRow></TableHead><TableBody>
+                {wlGuest.map((r:any) => (<TableRow key={r.deviceId}><TableCell>{r.deviceId}</TableCell><TableCell align="right">{r.count}</TableCell></TableRow>))}
+              </TableBody></Table></CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>Cart — Registered</Typography>
+              <Table size="small"><TableHead><TableRow><TableCell>User ID</TableCell><TableCell align="right">Qty</TableCell></TableRow></TableHead><TableBody>
+                {cartReg.map((r:any) => (<TableRow key={r.userId}><TableCell>{r.userId}</TableCell><TableCell align="right">{r.count}</TableCell></TableRow>))}
+              </TableBody></Table></CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>Cart — Guests</Typography>
+              <Table size="small"><TableHead><TableRow><TableCell>Device ID</TableCell><TableCell align="right">Qty</TableCell></TableRow></TableHead><TableBody>
+                {cartGuest.map((r:any) => (<TableRow key={r.deviceId}><TableCell>{r.deviceId}</TableCell><TableCell align="right">{r.count}</TableCell></TableRow>))}
+              </TableBody></Table></CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </>
   );
 };

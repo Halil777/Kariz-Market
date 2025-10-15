@@ -10,4 +10,10 @@ export declare class UpdateProductDto {
     stock?: number;
     status?: string;
     categoryId?: string | null;
+    specs?: Array<{
+        titleTk?: string;
+        titleRu?: string;
+        textTk?: string;
+        textRu?: string;
+    }>;
 }

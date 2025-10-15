@@ -6,7 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { absoluteAssetUrl, uploadFile } from '../../api/upload'
 import { createProduct, getProduct, updateProduct, type ProductDto } from '../../api/products'
-import { fetchCategoryTree, type CategoryNode } from '../../api/categories'
+import { fetchCombinedCategoryTree, type CategoryNode } from '../../api/categories'
 import DeleteIcon from '@mui/icons-material/Delete'
 
 export default function ProductForm() {
@@ -15,7 +15,7 @@ export default function ProductForm() {
   const editing = !!id && id !== 'new'
   const qc = useQueryClient()
   const { data: initial } = useQuery({ queryKey: ['vendor','product', id], queryFn: () => getProduct(id!), enabled: editing })
-  const { data: tree = [] } = useQuery({ queryKey: ['categories','tree'], queryFn: fetchCategoryTree })
+  const { data: tree = [] } = useQuery({ queryKey: ['categories','tree','combined'], queryFn: fetchCombinedCategoryTree })
 
   const [status, setStatus] = useState<'active' | 'inactive'>('active')
   const [sku, setSku] = useState('')
@@ -31,6 +31,7 @@ export default function ProductForm() {
   const [deeperPath, setDeeperPath] = useState<string[]>([])
   const [parentId, setParentId] = useState<string>('')
   const [error, setError] = useState<string>('')
+  const [specs, setSpecs] = useState<Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>>([])
 
   useEffect(() => {
     if (initial) {
@@ -45,6 +46,7 @@ export default function ProductForm() {
       setStock(initial.stock || 0)
       setImages(initial.images || [])
       setCategoryId(initial.categoryId || '')
+      setSpecs((initial as any).specs || [])
     }
   }, [initial])
 
@@ -60,7 +62,8 @@ export default function ProductForm() {
       return null
     }
     const p = find(tree as CategoryNode[])
-    setParentId(p || '')
+    // If category is a root (no parent), reflect it in parent select as well
+    setParentId(p != null ? p : categoryId)
     setDeeperPath([])
   }, [categoryId, tree])
 
@@ -129,20 +132,21 @@ export default function ProductForm() {
   const submit = () => {
     setError('')
     if (!nameTk && !nameRu) { setError('Name (TM) or Name (RU) required'); return }
-    const selectedCategory = deeperPath.length ? deeperPath[deeperPath.length - 1] : categoryId
-    const payload: Partial<ProductDto> & any = {
-      sku: sku || undefined,
-      nameTk: nameTk || undefined,
-      nameRu: nameRu || undefined,
-      unit,
-      price,
-      compareAt: compareAt === '' ? undefined : compareAt,
-      discountPct,
-      stock,
-      images,
-      categoryId: selectedCategory || undefined,
-      status,
-    }
+    const selectedCategory = deeperPath.length ? deeperPath[deeperPath.length - 1] : (categoryId || parentId)
+      const payload: Partial<ProductDto> & any = {
+        sku: sku || undefined,
+        nameTk: nameTk || undefined,
+        nameRu: nameRu || undefined,
+        unit,
+        price,
+        compareAt: compareAt === '' ? undefined : compareAt,
+        discountPct,
+        stock,
+        images,
+        categoryId: selectedCategory || undefined,
+        status,
+        specs,
+      }
     if (editing) mUpdate.mutate(payload)
     else mCreate.mutate(payload)
   }
@@ -185,6 +189,31 @@ export default function ProductForm() {
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField fullWidth label="Name (TM)" value={nameTk} onChange={(e) => setNameTk(e.target.value)} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Characteristics</Typography>
+                    {specs.map((row, idx) => (
+                      <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
+                        <Grid size={{ xs: 12, sm: 3 }}>
+                          <TextField fullWidth label="Title (TM)" value={row.titleTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleTk: e.target.value } : r))} />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 3 }}>
+                          <TextField fullWidth label="Title (RU)" value={row.titleRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleRu: e.target.value } : r))} />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 5 }}>
+                          <TextField fullWidth label="Text (TM)" value={row.textTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textTk: e.target.value } : r))} />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 1 }}>
+                          <Button color="error" onClick={() => setSpecs(prev => prev.filter((_,i)=>i!==idx))}>Remove</Button>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <TextField fullWidth label="Text (RU)" value={row.textRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textRu: e.target.value } : r))} />
+                        </Grid>
+                      </Grid>
+                    ))}
+                    <Button variant="outlined" onClick={() => setSpecs(prev => [...prev, {}])}>Add characteristic</Button>
+                  </Box>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField fullWidth label="Name (RU)" value={nameRu} onChange={(e) => setNameRu(e.target.value)} />

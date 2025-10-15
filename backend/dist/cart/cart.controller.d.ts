@@ -9,4 +9,19 @@ export declare class CartController {
         qty?: number;
     }): Promise<import("./entities/cart.entity").Cart>;
     remove(req: any, id: string): Promise<import("./entities/cart.entity").Cart>;
+    getPublic(body: {
+        deviceId: string;
+    }): Promise<import("./entities/cart.entity").Cart>;
+    addPublic(body: {
+        deviceId: string;
+        productId: string;
+        price: string;
+        qty?: number;
+    }): Promise<import("./entities/cart.entity").Cart>;
+    removePublic(body: {
+        deviceId: string;
+        itemId: string;
+    }): Promise<import("./entities/cart.entity").Cart>;
+    groupRegistered(): Promise<any>;
+    groupGuests(): Promise<any>;
 }

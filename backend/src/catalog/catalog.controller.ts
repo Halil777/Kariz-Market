@@ -31,6 +31,11 @@ export class CatalogController {
     return this.catalog.listProducts({ categoryId });
   }
 
+  @Get('products/all/:id')
+  productAll(@Param('id') id: string) {
+    return this.catalog.getAnyProduct(id);
+  }
+
   @Get('products/highlights')
   productHighlights(@Query('limit') limit?: string) {
     const parsed = limit ? Number.parseInt(limit, 10) : Number.NaN;

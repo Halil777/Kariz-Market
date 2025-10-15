@@ -36,6 +36,9 @@ let CatalogController = class CatalogController {
     productsAll(categoryId) {
         return this.catalog.listProducts({ categoryId });
     }
+    productAll(id) {
+        return this.catalog.getAnyProduct(id);
+    }
     productHighlights(limit) {
         const parsed = limit ? Number.parseInt(limit, 10) : Number.NaN;
         const size = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
@@ -141,6 +144,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], CatalogController.prototype, "productsAll", null);
+__decorate([
+    (0, common_1.Get)('products/all/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], CatalogController.prototype, "productAll", null);
 __decorate([
     (0, common_1.Get)('products/highlights'),
     __param(0, (0, common_1.Query)('limit')),

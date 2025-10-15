@@ -66,6 +66,14 @@ export class Product {
   @Column({ nullable: true })
   brand?: string | null;
 
+  @Column({ type: 'jsonb', default: [] })
+  specs: Array<{
+    titleTk?: string | null;
+    titleRu?: string | null;
+    textTk?: string | null;
+    textRu?: string | null;
+  }>;
+
   @OneToMany(() => ProductTranslation, (t) => t.product)
   translations: ProductTranslation[];
 

@@ -210,9 +210,8 @@ export const ProductsPage: React.FC = () => {
           stock: editing.stock,
           images: editing.images || [],
           categoryId: editing.categoryId || '',
-          categoryNameTk: (editing as any).categoryNameTk,
-          categoryNameRu: (editing as any).categoryNameRu,
           status: editing.status as any,
+          specs: (editing as any).specs || [],
         } : undefined}
         onClose={() => setOpenForm(false)}
         onSubmit={(val) => handleSubmit(val)}

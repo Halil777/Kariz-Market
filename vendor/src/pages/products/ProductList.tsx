@@ -30,7 +30,7 @@ import { Link } from 'react-router-dom'
 import BreadcrumbsNav from '../../components/common/BreadcrumbsNav'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { deleteProduct, fetchProducts, type ProductDto } from '../../api/products'
-import { fetchCategories, type CategoryDto } from '../../api/categories'
+import { fetchCombinedCategories, type CategoryDto } from '../../api/categories'
 import { absoluteAssetUrl } from '../../api/upload'
 
 type Row = ProductDto & { name: string }
@@ -42,7 +42,7 @@ export default function ProductList() {
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const qc = useQueryClient()
   const { data: items = [] } = useQuery({ queryKey: ['vendor','products', categoryFilter], queryFn: () => fetchProducts(categoryFilter || undefined) })
-  const { data: categories = [] } = useQuery({ queryKey: ['vendor','categories','flat'], queryFn: fetchCategories })
+  const { data: categories = [] } = useQuery({ queryKey: ['vendor','categories','flat','combined'], queryFn: fetchCombinedCategories })
   const mDelete = useMutation({ mutationFn: deleteProduct, onSuccess: () => qc.invalidateQueries({ queryKey: ['vendor','products'] }) })
   const [selected, setSelected] = useState<string[]>([])
   const [page, setPage] = useState(0)

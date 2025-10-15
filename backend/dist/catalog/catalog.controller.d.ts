@@ -9,6 +9,7 @@ export declare class CatalogController {
     categories(): Promise<any[]>;
     products(categoryId?: string): Promise<any[]>;
     productsAll(categoryId?: string): Promise<any[]>;
+    productAll(id: string): Promise<any>;
     productHighlights(limit?: string): Promise<{
         top: any[];
         deals: any[];

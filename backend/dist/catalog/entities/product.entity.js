@@ -84,6 +84,10 @@ __decorate([
     __metadata("design:type", String)
 ], Product.prototype, "brand", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', default: [] }),
+    __metadata("design:type", Array)
+], Product.prototype, "specs", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => product_translation_entity_1.ProductTranslation, (t) => t.product),
     __metadata("design:type", Array)
 ], Product.prototype, "translations", void 0);

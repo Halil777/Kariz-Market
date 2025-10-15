@@ -1,4 +1,4 @@
-import React from 'react'
+// React import removed (not used)
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, Table, TableHead, TableRow, TableCell, TableBody, Chip, Divider, TableContainer, Paper } from '@mui/material'
 import BreadcrumbsNav from '../../components/common/BreadcrumbsNav'

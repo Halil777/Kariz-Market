@@ -45,5 +45,8 @@ export class UpdateProductDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string | null; // subcategory id
-}
 
+  @IsOptional()
+  @IsArray()
+  specs?: Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>;
+}

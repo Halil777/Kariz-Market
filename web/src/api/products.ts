@@ -15,6 +15,7 @@ export type ProductSummary = {
   vendorId?: string | null;
   categoryId?: string | null;
   createdAt?: string;
+  specs?: Array<{ titleTk?: string | null; titleRu?: string | null; textTk?: string | null; textRu?: string | null }>;
 };
 
 export type HomeHighlightsResponse = {
@@ -31,5 +32,10 @@ export const fetchHomeHighlights = async (limit = 10) => {
 
 export const fetchProducts = async (categoryId?: string) => {
   const { data } = await api.get<ProductSummary[]>('/products/all', { params: { categoryId } })
+  return data
+}
+
+export const fetchProduct = async (id: string) => {
+  const { data } = await api.get<ProductSummary>(`/products/all/${id}`)
   return data
 }

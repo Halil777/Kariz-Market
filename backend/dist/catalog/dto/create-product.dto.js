@@ -68,4 +68,9 @@ __decorate([
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], CreateProductDto.prototype, "categoryId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    __metadata("design:type", Array)
+], CreateProductDto.prototype, "specs", void 0);
 //# sourceMappingURL=create-product.dto.js.map

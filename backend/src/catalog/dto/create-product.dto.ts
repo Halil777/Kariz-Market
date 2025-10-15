@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsIn, IsInt, IsNumberString, IsOptional, IsString, IsUUID, Max, Min, ValidateIf } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsNumberString, IsOptional, IsString, IsUUID, Min, ValidateIf } from 'class-validator';
 
 export class CreateProductDto {
   @IsOptional()
@@ -43,4 +43,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string | null; // subcategory id
+
+  @IsOptional()
+  @IsArray()
+  specs?: Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>;
 }

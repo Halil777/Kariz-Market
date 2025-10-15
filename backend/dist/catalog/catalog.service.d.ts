@@ -23,6 +23,8 @@ export declare class CatalogService implements OnModuleInit {
         categoryId?: string;
         vendorId?: string | null;
     }): Promise<any[]>;
+    private toSlug;
+    private ensureUniqueCategorySlug;
     private collectDescendantCategoryIds;
     private mapProductsWithTranslations;
     private serializeProduct;
@@ -46,6 +48,7 @@ export declare class CatalogService implements OnModuleInit {
         ok: boolean;
     }>;
     getGlobalProduct(id: string): Promise<any>;
+    getAnyProduct(id: string): Promise<any>;
     createGlobalProduct(dto: CreateProductDto): Promise<any>;
     updateGlobalProduct(id: string, dto: UpdateProductDto): Promise<any>;
     deleteGlobalProduct(id: string): Promise<{

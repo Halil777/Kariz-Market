@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { Product } from './entities/product.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -124,6 +124,27 @@ export class CatalogService implements OnModuleInit {
     return this.mapProductsWithTranslations(products);
   }
 
+  private toSlug(name: string) {
+    return (name || 'category')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-');
+  }
+
+  private async ensureUniqueCategorySlug(base: string, excludeId?: string): Promise<string> {
+    let candidate = base;
+    let n = 2;
+    // Loop until slug is unique across all categories (global + vendor)
+    // Exclude current id on updates
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const exists = await this.catRepo.findOne({ where: excludeId ? { slug: candidate, id: Not(excludeId) } as any : { slug: candidate } });
+      if (!exists) return candidate;
+      candidate = `${base}-${n++}`;
+    }
+  }
+
   private async collectDescendantCategoryIds(rootId: string): Promise<string[]> {
     const ids = new Set<string>([rootId]);
     let frontier = [rootId];
@@ -206,6 +227,7 @@ export class CatalogService implements OnModuleInit {
       nameRu: names?.ru ?? null,
       categoryNameTk: categoryNames?.tk ?? null,
       categoryNameRu: categoryNames?.ru ?? null,
+      specs: (product as any).specs || [],
     };
   }
 
@@ -320,11 +342,7 @@ export class CatalogService implements OnModuleInit {
       }
     }
     const nameBase = dto.name ?? dto.nameTk ?? dto.nameRu ?? 'category';
-    const slug = nameBase
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-');
+    const slug = await this.ensureUniqueCategorySlug(this.toSlug(nameBase));
     const entity = this.catRepo.create({
       name: nameBase,
       slug,
@@ -357,11 +375,7 @@ export class CatalogService implements OnModuleInit {
     if (dto.isActive !== undefined) patch.isActive = dto.isActive;
     if (dto.imageUrl !== undefined) patch.imageUrl = dto.imageUrl;
     if (dto.name) {
-      patch.slug = dto.name
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
+      patch.slug = await this.ensureUniqueCategorySlug(this.toSlug(dto.name), id);
     }
     await this.catRepo.update({ id }, patch);
     const saved = await this.catRepo.findOne({ where: { id } });
@@ -428,6 +442,7 @@ export class CatalogService implements OnModuleInit {
       compareAt: pricing.compareAt ?? null,
       discountPct: pricing.discountPct ?? (dto.discountPct != null ? String(dto.discountPct) : '0'),
       stock: dto.stock,
+      specs: Array.isArray(dto.specs) ? dto.specs : [],
     });
     const saved = await this.prodRepo.save(entity);
     const translations: ProductTranslation[] = [];
@@ -456,6 +471,7 @@ export class CatalogService implements OnModuleInit {
     if (dto.discountPct !== undefined) patch.discountPct = dto.discountPct;
     if (dto.stock !== undefined) patch.stock = dto.stock;
     if (dto.categoryId !== undefined) patch.categoryId = dto.categoryId;
+    if (dto.specs !== undefined) patch.specs = Array.isArray(dto.specs) ? dto.specs : [];
 
     if ('price' in patch || 'compareAt' in patch || 'discountPct' in patch) {
       const finalPricing = this.computePricing({
@@ -507,6 +523,15 @@ export class CatalogService implements OnModuleInit {
     return dto;
   }
 
+  // Any-scope product by id (public web)
+  async getAnyProduct(id: string) {
+    const product = await this.prodRepo.findOne({ where: { id } });
+    if (!product) throw new NotFoundException('Product not found');
+    const [dto] = await this.mapProductsWithTranslations([product]);
+    if (!dto) throw new NotFoundException('Product not found');
+    return dto;
+  }
+
   async createGlobalProduct(dto: CreateProductDto) {
     if (dto.categoryId) {
       const cat = await this.catRepo.findOne({ where: { id: dto.categoryId } });
@@ -525,6 +550,7 @@ export class CatalogService implements OnModuleInit {
       compareAt: pricing.compareAt ?? null,
       discountPct: pricing.discountPct ?? (dto.discountPct != null ? String(dto.discountPct) : '0'),
       stock: dto.stock,
+      specs: Array.isArray(dto.specs) ? dto.specs : [],
     });
     const saved = await this.prodRepo.save(entity);
     const trs: ProductTranslation[] = [];
@@ -551,6 +577,7 @@ export class CatalogService implements OnModuleInit {
     if (dto.discountPct !== undefined) patch.discountPct = dto.discountPct;
     if (dto.stock !== undefined) patch.stock = dto.stock;
     if (dto.categoryId !== undefined) patch.categoryId = dto.categoryId;
+    if (dto.specs !== undefined) patch.specs = Array.isArray(dto.specs) ? dto.specs : [];
     if ('price' in patch || 'compareAt' in patch || 'discountPct' in patch) {
       const finalPricing = this.computePricing({ price: patch.price ?? existing.price, compareAt: patch.compareAt ?? existing.compareAt ?? null, discountPct: patch.discountPct ?? existing.discountPct });
       if (finalPricing.price !== undefined) patch.price = finalPricing.price;

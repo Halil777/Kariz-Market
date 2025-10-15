@@ -18,6 +18,12 @@ export declare class Product {
     stock: number;
     taxClass?: string | null;
     brand?: string | null;
+    specs: Array<{
+        titleTk?: string | null;
+        titleRu?: string | null;
+        textTk?: string | null;
+        textRu?: string | null;
+    }>;
     translations: ProductTranslation[];
     variants: ProductVariant[];
     createdAt: Date;

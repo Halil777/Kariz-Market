@@ -19,6 +19,7 @@ export type AdminProductFormValue = {
   images: string[]
   categoryId?: string | ''
   status: 'active' | 'inactive'
+  specs?: Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>
 }
 
 type Props = {
@@ -42,6 +43,7 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
   const [images, setImages] = useState<string[]>([])
   const [categoryPath, setCategoryPath] = useState<string[]>([])
   const [error, setError] = useState<string>('')
+  const [specs, setSpecs] = useState<Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>>([])
 
   useEffect(() => {
     if (initial) {
@@ -55,6 +57,7 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
       setDiscountPct(initial.discountPct != null ? Number(initial.discountPct) : 0)
       setStock(initial.stock != null ? Number(initial.stock) : 0)
       setImages((initial.images as any) || [])
+      setSpecs((initial as any).specs || [])
       if (initial.categoryId && Array.isArray(tree)) {
         const chain = findChain(tree as CategoryNode[], String(initial.categoryId))
         setCategoryPath(chain)
@@ -62,7 +65,7 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
         setCategoryPath([])
       }
     } else {
-      setStatus('active'); setSku(''); setNameTk(''); setNameRu(''); setUnit('count'); setPrice(0); setCompareAt(''); setDiscountPct(0); setStock(0); setImages([]); setCategoryPath([])
+      setStatus('active'); setSku(''); setNameTk(''); setNameRu(''); setUnit('count'); setPrice(0); setCompareAt(''); setDiscountPct(0); setStock(0); setImages([]); setCategoryPath([]); setSpecs([])
     }
   }, [initial, open, tree])
 
@@ -164,6 +167,7 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
       images,
       categoryId: getSelectedCategoryId(),
       status,
+      specs,
     }
     onSubmit(payload)
   }
@@ -221,6 +225,21 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
             </Box>
           </Grid>
         </Grid>
+        <Grid item xs={12}>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Characteristics</Typography>
+            {specs.map((row, idx) => (
+              <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
+                <Grid item xs={12} md={3}><TextField fullWidth label="Title (TM)" value={row.titleTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleTk: e.target.value } : r))} /></Grid>
+                <Grid item xs={12} md={3}><TextField fullWidth label="Title (RU)" value={row.titleRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleRu: e.target.value } : r))} /></Grid>
+                <Grid item xs={12} md={5}><TextField fullWidth label="Text (TM)" value={row.textTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textTk: e.target.value } : r))} /></Grid>
+                <Grid item xs={12} md={1}><Button color="error" onClick={() => setSpecs(prev => prev.filter((_,i)=>i!==idx))}>Remove</Button></Grid>
+                <Grid item xs={12} md={6}><TextField fullWidth label="Text (RU)" value={row.textRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textRu: e.target.value } : r))} /></Grid>
+              </Grid>
+            ))}
+            <Button variant="outlined" onClick={() => setSpecs(prev => [...prev, {}])}>Add characteristic</Button>
+          </Box>
+        </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="inherit">Cancel</Button>
@@ -229,4 +248,3 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
     </Dialog>
   )
 }
-

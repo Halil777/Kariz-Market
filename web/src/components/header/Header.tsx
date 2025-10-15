@@ -28,33 +28,35 @@ import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlin
 import LanguageIcon from "@mui/icons-material/Language";
 import CheckIcon from "@mui/icons-material/Check";
 import { Link } from "react-router-dom";
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState } from '../../store/store';
+import { set as setWishlist } from '../../store/slices/wishlistSlice';
+import { fetchWishlist } from '../../api/wishlist';
 import { useTranslation } from "react-i18next";
 
 const LOGO_URL = "/logo/logo.png";
 
 export const Header: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const dispatch = useDispatch();
   const [languageAnchor, setLanguageAnchor] =
     React.useState<null | HTMLElement>(null);
   const activeLanguage = i18n.language?.toLowerCase().startsWith("ru")
     ? "ru"
     : "tk";
 
-  const languages = React.useMemo(
-    () => [
-      {
-        code: "tk",
-        label: t("language.turkmen"),
-        short: t("language.short.tk"),
-      },
-      {
-        code: "ru",
-        label: t("language.russian"),
-        short: t("language.short.ru"),
-      },
-    ],
-    [t]
-  );
+  const languages = React.useMemo(() => {
+    const lang = i18n.language?.toLowerCase().startsWith('ru') ? 'ru' : i18n.language?.toLowerCase().startsWith('tk') ? 'tk' : 'en';
+    const labels = {
+      en: { tk: 'Turkmen', ru: 'Russian' },
+      ru: { tk: 'Туркменский', ru: 'Русский' },
+      tk: { tk: 'Türkmençe', ru: 'Rusça' },
+    } as const;
+    return [
+      { code: 'tk', label: labels[lang].tk, short: 'TM' },
+      { code: 'ru', label: labels[lang].ru, short: 'RU' },
+    ];
+  }, [i18n.language]);
 
   const quickLinks = React.useMemo(
     () => [
@@ -96,6 +98,15 @@ export const Header: React.FC = () => {
   const activeLanguageShort =
     languages.find((l) => l.code === activeLanguage)?.short ??
     activeLanguage.toUpperCase();
+
+  React.useEffect(() => {
+    fetchWishlist().then((list:any[]) => dispatch(setWishlist(list.map((w:any) => w.productId)))).catch(() => {})
+    // Cart could be synced similarly if needed
+  }, [dispatch]);
+
+  // Badges
+  const cartCount = useSelector((s: RootState) => s.cart.items.reduce((sum, it) => sum + it.qty, 0));
+  const wishlistCount = useSelector((s: RootState) => s.wishlist.ids.length);
 
   return (
     <Box component="header">
@@ -249,11 +260,15 @@ export const Header: React.FC = () => {
                   <PersonOutlineIcon />
                 </Badge>
               </IconButton>
-              <IconButton component={Link} to="/wishlist" color="inherit">
-                <FavoriteBorderIcon />
+              <IconButton component={Link} to="/account/wishlist" color="inherit">
+                <Badge badgeContent={wishlistCount} color="secondary">
+                  <FavoriteBorderIcon />
+                </Badge>
               </IconButton>
               <IconButton component={Link} to="/cart" color="inherit">
-                <ShoppingCartIcon />
+                <Badge badgeContent={cartCount} color="secondary">
+                  <ShoppingCartIcon />
+                </Badge>
               </IconButton>
             </Box>
           </Toolbar>
