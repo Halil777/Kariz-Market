@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { OrderItem } from './order-item.entity';
+import { OrderStatus } from '../enums/order-status.enum';
 
 @Entity('orders')
 export class Order {
@@ -9,8 +10,8 @@ export class Order {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ default: 'pending' })
-  status: string;
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.Pending })
+  status: OrderStatus;
 
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   total: string;
@@ -23,5 +24,14 @@ export class Order {
 
   @CreateDateColumn({ name: 'placed_at' })
   placedAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @Column({ name: 'cancellation_reason', type: 'text', nullable: true })
+  cancellationReason?: string | null;
+
+  @Column({ name: 'cancelled_at', type: 'timestamp', nullable: true })
+  cancelledAt?: Date | null;
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Dialog, DialogActions, DialogContent, DialogTitle, Button, Grid, TextField, MenuItem } from '@mui/material';
-import { OrderStatus } from './OrderStatusChip';
+import type { OrderStatus } from '@/api/orders';
 
 export type Order = {
   id: string; // e.g., #12345
@@ -24,7 +24,7 @@ export const OrderFormDialog: React.FC<Props> = ({ open, initial, vendorOptions,
   const [customer, setCustomer] = React.useState('');
   const [vendor, setVendor] = React.useState('');
   const [date, setDate] = React.useState('');
-  const [status, setStatus] = React.useState<OrderStatus>('Pending');
+  const [status, setStatus] = React.useState<OrderStatus>('pending');
   const [total, setTotal] = React.useState<number>(0);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export const OrderFormDialog: React.FC<Props> = ({ open, initial, vendorOptions,
       setStatus(initial.status);
       setTotal(initial.total);
     } else {
-      setId(''); setCustomer(''); setVendor(''); setDate(''); setStatus('Pending'); setTotal(0);
+      setId(''); setCustomer(''); setVendor(''); setDate(''); setStatus('pending'); setTotal(0);
     }
   }, [initial, open]);
 
@@ -60,10 +60,10 @@ export const OrderFormDialog: React.FC<Props> = ({ open, initial, vendorOptions,
           </TextField></Grid>
           <Grid item xs={12} md={3}><TextField type="date" label="Date" value={date} onChange={(e) => setDate(e.target.value)} fullWidth InputLabelProps={{ shrink: true }} required /></Grid>
           <Grid item xs={12} md={3}><TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value as OrderStatus)} fullWidth>
-            <MenuItem value="Pending">Pending</MenuItem>
-            <MenuItem value="Shipped">Shipped</MenuItem>
-            <MenuItem value="Delivered">Delivered</MenuItem>
-            <MenuItem value="Cancelled">Cancelled</MenuItem>
+            <MenuItem value="pending">Pending</MenuItem>
+            <MenuItem value="processing">Processing</MenuItem>
+            <MenuItem value="completed">Completed</MenuItem>
+            <MenuItem value="cancelled">Cancelled</MenuItem>
           </TextField></Grid>
           <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Total (TMT)" value={total} onChange={(e) => setTotal(parseFloat(e.target.value))} fullWidth /></Grid>
         </Grid>

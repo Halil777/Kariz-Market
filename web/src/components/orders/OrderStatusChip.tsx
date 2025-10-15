@@ -1,7 +1,6 @@
-import React from 'react';
 import { Chip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import type { OrderStatus } from '@/api/orders';
+import type { OrderStatus } from '../../api/orders';
 
 const colorMap: Record<OrderStatus, 'default' | 'info' | 'success' | 'error'> = {
   pending: 'default',
@@ -12,6 +11,6 @@ const colorMap: Record<OrderStatus, 'default' | 'info' | 'success' | 'error'> = 
 
 export const OrderStatusChip: React.FC<{ status: OrderStatus }> = ({ status }) => {
   const { t } = useTranslation();
-  const label = t(`orders.status.${status}`);
-  return <Chip size="small" color={colorMap[status]} variant="outlined" label={label} />;
+  return <Chip size="small" label={t(`accountOrders.status.${status}`)} color={colorMap[status]} variant="outlined" />;
 };
+

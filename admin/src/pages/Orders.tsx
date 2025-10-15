@@ -1,108 +1,191 @@
 import React from 'react';
 import {
-  Typography,
-  Grid,
-  TextField,
-  MenuItem,
-  Button,
+  Box,
   Card,
   CardContent,
+  CircularProgress,
+  Grid,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  InputAdornment,
   TablePagination,
-  Stack,
-  IconButton,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { OrderFormDialog, Order } from '@/components/orders/OrderFormDialog';
-import { OrderStatusChip, OrderStatus } from '@/components/orders/OrderStatusChip';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { listOrders, type OrderStatus, type OrderSummary } from '@/api/orders';
+import { OrderStatusChip } from '@/components/orders/OrderStatusChip';
+import { OrderDetailsDrawer } from '@/components/orders/OrderDetailsDrawer';
 
-const vendorOptions = ['Aşgabat Market', 'Türkmen Bazar', 'Ahal Söwda'];
+const formatCurrency = (value: number, currency: string) => {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return `${currency} ${value.toFixed(2)}`;
+  }
+};
 
-const initialOrders: Order[] = [
-  { id: '#12345', customer: 'Batyr Amanow', vendor: vendorOptions[0], date: '2024-01-15', status: 'Pending', total: 150 },
-  { id: '#12346', customer: 'Aýna Rejepowa', vendor: vendorOptions[1], date: '2024-01-16', status: 'Shipped', total: 200 },
-  { id: '#12347', customer: 'Güljemal Orazowa', vendor: vendorOptions[0], date: '2024-01-17', status: 'Delivered', total: 100 },
-  { id: '#12348', customer: 'Merdan Yazmämmedow', vendor: vendorOptions[2], date: '2024-01-18', status: 'Cancelled', total: 50 },
-  { id: '#12349', customer: 'Serdar Rahmanow', vendor: vendorOptions[1], date: '2024-01-19', status: 'Pending', total: 120 },
-  { id: '#12350', customer: 'Leyla Nurmämmedowa', vendor: vendorOptions[0], date: '2024-01-20', status: 'Shipped', total: 180 },
-  { id: '#12351', customer: 'Yhlas Hojayew', vendor: vendorOptions[2], date: '2024-01-21', status: 'Delivered', total: 90 },
-  { id: '#12352', customer: 'Amanmyrat Atayew', vendor: vendorOptions[1], date: '2024-01-22', status: 'Cancelled', total: 70 },
-  { id: '#12353', customer: 'Ogulnur Aşyrowa', vendor: vendorOptions[0], date: '2024-01-23', status: 'Pending', total: 110 },
-  { id: '#12354', customer: 'Täçmämmet Meredow', vendor: vendorOptions[2], date: '2024-01-24', status: 'Shipped', total: 160 },
-];
+const formatOrderNumber = (id: string) => {
+  if (!id) return '#—';
+  const short = id.replace(/[^a-zA-Z0-9]/g, '').slice(-6);
+  return `#${short || id.slice(0, 6)}`;
+};
+
+const statusOptions: Array<'all' | OrderStatus> = ['all', 'pending', 'processing', 'completed', 'cancelled'];
 
 export const OrdersPage: React.FC = () => {
   const { t } = useTranslation();
-  const [orders, setOrders] = React.useState<Order[]>(initialOrders);
   const [query, setQuery] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<'all' | OrderStatus>('all');
+  const [search, setSearch] = React.useState('');
+  const [status, setStatus] = React.useState<'all' | OrderStatus>('all');
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [openForm, setOpenForm] = React.useState(false);
-  const [editing, setEditing] = React.useState<Order | null>(null);
-  const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [selected, setSelected] = React.useState<OrderSummary | null>(null);
 
-  const filtered = orders.filter((o) => {
-    const matchesQuery = [o.id, o.customer].some((v) => v.toLowerCase().includes(query.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' ? true : o.status === statusFilter;
-    return matchesQuery && matchesStatus;
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const { data: orders = [], isFetching, isLoading } = useQuery<OrderSummary[]>({
+    queryKey: ['orders', { status, search }],
+    queryFn: () =>
+      listOrders({
+        status: status === 'all' ? undefined : status,
+        q: search || undefined,
+      }),
   });
 
-  const paged = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  React.useEffect(() => {
+    setPage(0);
+  }, [status, search]);
 
-  const openAdd = () => { setEditing(null); setOpenForm(true); };
-  const openEdit = (o: Order) => { setEditing(o); setOpenForm(true); };
+  const pagedOrders = React.useMemo(
+    () => orders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [orders, page, rowsPerPage],
+  );
 
-  const handleSubmit = (data: Partial<Order>) => {
-    if (editing) {
-      setOrders((prev) => prev.map((x) => (x.id === editing.id ? { ...x, ...data } as Order : x)));
-    } else {
-      const newOrder: Order = {
-        id: data.id || `#${String(Date.now()).slice(-5)}`,
-        customer: String(data.customer || ''),
-        vendor: String(data.vendor || vendorOptions[0]),
-        date: String(data.date || new Date().toISOString().slice(0, 10)),
-        status: (data.status as OrderStatus) || 'Pending',
-        total: Number(data.total || 0),
-      };
-      setOrders((prev) => [newOrder, ...prev]);
+  const statusCounts = React.useMemo(() => {
+    const counters: Record<OrderStatus, number> = {
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+    for (const order of orders) {
+      counters[order.status] += 1;
     }
-    setOpenForm(false);
+    return { total: orders.length, ...counters };
+  }, [orders]);
+
+  const renderVendorLabel = (order: OrderSummary) => {
+    if (order.vendors.length === 0) return t('orders.vendorFallback');
+    if (order.vendors.length === 1) return order.vendors[0].name;
+    return t('orders.vendorMultiple', { count: order.vendors.length });
   };
 
-  const confirmDelete = () => {
-    if (deleteId) setOrders((prev) => prev.filter((o) => o.id !== deleteId));
-    setDeleteId(null);
+  const renderCustomer = (order: OrderSummary) => {
+    const name = order.customer?.displayName || order.customer?.email;
+    if (!name) return t('orders.customerUnknown');
+    return name;
   };
 
-  const formatTMT = (v: number) => `TMT ${v.toFixed(2)}`;
+  const loading = isLoading || isFetching;
 
   return (
     <>
-      <Grid container spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-        <Grid item xs={12} md={6}><Typography variant="h5">{t('orders.title')}</Typography></Grid>
-        <Grid item xs={12} md={3}>
-          <TextField fullWidth placeholder={t('orders.search')} value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }} size="small" InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon /></InputAdornment>) }} />
+      <Box display="flex" alignItems={{ xs: 'stretch', md: 'center' }} flexWrap="wrap" gap={1.5} sx={{ mb: 2 }}>
+        <Box flex={1} minWidth={200}>
+          <Typography variant="h5">{t('orders.title')}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('orders.subtitle', { count: orders.length })}
+          </Typography>
+        </Box>
+        <TextField
+          size="small"
+          placeholder={t('orders.search')}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ minWidth: 240 }}
+        />
+        <TextField
+          select
+          size="small"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as 'all' | OrderStatus)}
+          sx={{ minWidth: 180 }}
+        >
+          {statusOptions.map((s) => (
+            <MenuItem key={s} value={s}>
+              {s === 'all' ? t('orders.statusFilter') : t(`orders.status.${s}`)}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+        <Grid item xs={6} md={3}>
+          <Card variant="outlined">
+            <CardContent sx={{ py: 1.5 }}>
+              <Typography variant="subtitle2" color="text.secondary">
+                {t('orders.metrics.total')}
+              </Typography>
+              <Typography variant="h5">{statusCounts.total}</Typography>
+            </CardContent>
+          </Card>
         </Grid>
-        <Grid item xs={8} md={2}>
-          <TextField select fullWidth size="small" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as any); setPage(0); }}>
-            <MenuItem value="all">{t('orders.statusFilter')}</MenuItem>
-            {(['Pending','Shipped','Delivered','Cancelled'] as OrderStatus[]).map((s) => (<MenuItem key={s} value={s}>{s}</MenuItem>))}
-          </TextField>
+        <Grid item xs={6} md={3}>
+          <Card variant="outlined">
+            <CardContent sx={{ py: 1.5 }}>
+              <Typography variant="subtitle2" color="text.secondary">
+                {t('orders.metrics.pending')}
+              </Typography>
+              <Typography variant="h5">{statusCounts.pending}</Typography>
+            </CardContent>
+          </Card>
         </Grid>
-        <Grid item xs={4} md="auto" textAlign="right">
-          <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={openAdd} sx={{ px: 2 }}>{t('orders.newOrder')}</Button>
+        <Grid item xs={6} md={3}>
+          <Card variant="outlined">
+            <CardContent sx={{ py: 1.5 }}>
+              <Typography variant="subtitle2" color="text.secondary">
+                {t('orders.metrics.processing')}
+              </Typography>
+              <Typography variant="h5">{statusCounts.processing}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6} md={3}>
+          <Card variant="outlined">
+            <CardContent sx={{ py: 1.5 }}>
+              <Typography variant="subtitle2" color="text.secondary">
+                {t('orders.metrics.completed')}
+              </Typography>
+              <Typography variant="h5">{statusCounts.completed}</Typography>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
@@ -122,39 +205,66 @@ export const OrdersPage: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paged.map((o) => (
-                  <TableRow key={o.id} hover sx={{ '& .MuiTableCell-root': { py: 0.75 } }}>
-                    <TableCell>{o.id}</TableCell>
-                    <TableCell>{o.customer}</TableCell>
-                    <TableCell>{o.vendor}</TableCell>
-                    <TableCell>{o.date}</TableCell>
-                    <TableCell><OrderStatusChip status={o.status} /></TableCell>
-                    <TableCell align="right">{formatTMT(o.total)}</TableCell>
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <IconButton size="small" onClick={() => openEdit(o)}><EditOutlinedIcon fontSize="small" /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => setDeleteId(o.id)}><DeleteOutlineIcon fontSize="small" /></IconButton>
-                      </Stack>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <CircularProgress size={22} />
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
+                {!loading && pagedOrders.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      {orders.length === 0 ? t('orders.empty') : t('orders.noResults')}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading &&
+                  pagedOrders.map((order) => (
+                    <TableRow key={order.id} hover sx={{ '& .MuiTableCell-root': { py: 0.9 } }}>
+                      <TableCell sx={{ fontWeight: 600 }}>{formatOrderNumber(order.id)}</TableCell>
+                      <TableCell>{renderCustomer(order)}</TableCell>
+                      <TableCell>{renderVendorLabel(order)}</TableCell>
+                      <TableCell>
+                        {order.placedAt ? new Date(order.placedAt).toLocaleDateString() : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <OrderStatusChip status={order.status} />
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(order.total, order.currency)}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+                          <Tooltip title={t('orders.actions.view')}>
+                            <IconButton size="small" onClick={() => setSelected(order)}>
+                              <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
           <TablePagination
             component="div"
-            count={filtered.length}
+            count={orders.length}
             page={page}
-            onPageChange={(_, p) => setPage(p)}
+            onPageChange={(_, next) => setPage(next)}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(0);
+            }}
             rowsPerPageOptions={[10, 25, 50]}
           />
         </CardContent>
       </Card>
 
-      <OrderFormDialog open={openForm} initial={editing} vendorOptions={vendorOptions} onClose={() => setOpenForm(false)} onSubmit={handleSubmit} />
-      <ConfirmDialog open={!!deleteId} title={t('orders.deletePrompt')} description={t('orders.deleteDescription')} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} />
+      <OrderDetailsDrawer open={Boolean(selected)} order={selected} onClose={() => setSelected(null)} />
     </>
   );
 };
+
