@@ -8,8 +8,10 @@ import { absoluteAssetUrl, uploadFile } from '../../api/upload'
 import { createProduct, getProduct, updateProduct, type ProductDto } from '../../api/products'
 import { fetchCombinedCategoryTree, type CategoryNode } from '../../api/categories'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { useTranslation } from 'react-i18next'
 
 export default function ProductForm() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams()
   const editing = !!id && id !== 'new'
@@ -131,7 +133,7 @@ export default function ProductForm() {
 
   const submit = () => {
     setError('')
-    if (!nameTk && !nameRu) { setError('Name (TM) or Name (RU) required'); return }
+    if (!nameTk && !nameRu) { setError(t('products.form.nameRequired')); return }
     const selectedCategory = deeperPath.length ? deeperPath[deeperPath.length - 1] : (categoryId || parentId)
       const payload: Partial<ProductDto> & any = {
         sku: sku || undefined,
@@ -177,111 +179,119 @@ export default function ProductForm() {
     }
   }
 
+  const language = i18n.language
+  const categoryTitle = (node?: any) => {
+    if (!node) return ''
+    if (language === 'ru') return node.nameRu || node.nameTk || node.name || ''
+    if (language === 'tk') return node.nameTk || node.nameRu || node.name || ''
+    return node.nameRu || node.nameTk || node.name || ''
+  }
+
   return (
     <>
       <BreadcrumbsNav />
       <Card>
-        <CardHeader title={editing ? 'Edit Product' : 'Add Product'} />
+        <CardHeader title={editing ? t('products.form.titleEdit') : t('products.form.titleCreate')} />
         <CardContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 8 }}>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth label="Name (TM)" value={nameTk} onChange={(e) => setNameTk(e.target.value)} />
+                  <TextField fullWidth label={t('products.form.fieldNameTk')} value={nameTk} onChange={(e) => setNameTk(e.target.value)} />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <Box sx={{ mt: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Characteristics</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{t('products.form.specsTitle')}</Typography>
                     {specs.map((row, idx) => (
                       <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
                         <Grid size={{ xs: 12, sm: 3 }}>
-                          <TextField fullWidth label="Title (TM)" value={row.titleTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleTk: e.target.value } : r))} />
+                          <TextField fullWidth label={t('products.form.specsTitleTk')} value={row.titleTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleTk: e.target.value } : r))} />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 3 }}>
-                          <TextField fullWidth label="Title (RU)" value={row.titleRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleRu: e.target.value } : r))} />
+                          <TextField fullWidth label={t('products.form.specsTitleRu')} value={row.titleRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleRu: e.target.value } : r))} />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 5 }}>
-                          <TextField fullWidth label="Text (TM)" value={row.textTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textTk: e.target.value } : r))} />
+                          <TextField fullWidth label={t('products.form.specsTextTk')} value={row.textTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textTk: e.target.value } : r))} />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 1 }}>
-                          <Button color="error" onClick={() => setSpecs(prev => prev.filter((_,i)=>i!==idx))}>Remove</Button>
+                          <Button color="error" onClick={() => setSpecs(prev => prev.filter((_,i)=>i!==idx))}>{t('products.form.specsRemove')}</Button>
                         </Grid>
                         <Grid size={{ xs: 12, sm: 6 }}>
-                          <TextField fullWidth label="Text (RU)" value={row.textRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textRu: e.target.value } : r))} />
+                          <TextField fullWidth label={t('products.form.specsTextRu')} value={row.textRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textRu: e.target.value } : r))} />
                         </Grid>
                       </Grid>
                     ))}
-                    <Button variant="outlined" onClick={() => setSpecs(prev => [...prev, {}])}>Add characteristic</Button>
+                    <Button variant="outlined" onClick={() => setSpecs(prev => [...prev, {}])}>{t('products.form.specsAdd')}</Button>
                   </Box>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth label="Name (RU)" value={nameRu} onChange={(e) => setNameRu(e.target.value)} />
+                  <TextField fullWidth label={t('products.form.fieldNameRu')} value={nameRu} onChange={(e) => setNameRu(e.target.value)} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} required />
+                  <TextField fullWidth label={t('products.form.fieldSku')} value={sku} onChange={(e) => setSku(e.target.value)} required />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth select label="Unit" value={unit} onChange={(e) => setUnit(e.target.value as any)}>
-                    <MenuItem value="count">san</MenuItem>
-                    <MenuItem value="kg">kg</MenuItem>
-                    <MenuItem value="l">litr</MenuItem>
+                  <TextField fullWidth select label={t('products.form.fieldUnit')} value={unit} onChange={(e) => setUnit(e.target.value as any)}>
+                    <MenuItem value="count">{t('products.form.units.count')}</MenuItem>
+                    <MenuItem value="kg">{t('products.form.units.kg')}</MenuItem>
+                    <MenuItem value="l">{t('products.form.units.l')}</MenuItem>
                   </TextField>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <TextField fullWidth label="Price" type="number" inputProps={{ min: 0, step: '0.01' }} value={price} onChange={(e) => onChangePrice(e.target.value)} />
+                  <TextField fullWidth label={t('products.form.fieldPrice')} type="number" inputProps={{ min: 0, step: '0.01' }} value={price} onChange={(e) => onChangePrice(e.target.value)} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <TextField fullWidth label="Old Price" type="number" inputProps={{ min: 0, step: '0.01' }} value={compareAt} onChange={(e) => onChangeCompareAt(e.target.value)} />
+                  <TextField fullWidth label={t('products.form.fieldCompareAt')} type="number" inputProps={{ min: 0, step: '0.01' }} value={compareAt} onChange={(e) => onChangeCompareAt(e.target.value)} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <TextField fullWidth label="Discount (%)" type="number" inputProps={{ min: 0, max: 100, step: '0.01' }} value={discountPct} onChange={(e) => onChangeDiscount(e.target.value)} />
+                  <TextField fullWidth label={t('products.form.fieldDiscount')} type="number" inputProps={{ min: 0, max: 100, step: '0.01' }} value={discountPct} onChange={(e) => onChangeDiscount(e.target.value)} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth select label="Category" value={parentId} onChange={(e) => { setParentId(e.target.value); setCategoryId('') }}>
+                  <TextField fullWidth select label={t('products.form.fieldCategory')} value={parentId} onChange={(e) => { setParentId(e.target.value); setCategoryId('') }}>
                     <MenuItem value="">—</MenuItem>
                     {parents.map((p) => (
-                      <MenuItem key={p.id} value={p.id}>{(p as any).nameTk || p.name}</MenuItem>
+                      <MenuItem key={p.id} value={p.id}>{categoryTitle(p)}</MenuItem>
                     ))}
                   </TextField>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth select label="Subcategory" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={!parentId}>
+                  <TextField fullWidth select label={t('products.form.fieldSubcategory')} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={!parentId}>
                     <MenuItem value="">—</MenuItem>
                     {children.map((c) => (
-                      <MenuItem key={c.id} value={c.id}>{(c as any).nameTk || c.name}</MenuItem>
+                      <MenuItem key={c.id} value={c.id}>{categoryTitle(c)}</MenuItem>
                     ))}
                   </TextField>
                 </Grid>
                 {deeperLevels.map((opts, i) => (
                   <Grid key={i} size={{ xs: 12, sm: 6 }}>
-                    <TextField fullWidth select label={`Subcategory ${i + 2}`}
+                    <TextField fullWidth select label={t('products.form.subcategoryLevel', { level: i + 2 })}
                       value={deeperPath[i] || ''}
                       onChange={(e) => onSelectDeeper(i, e.target.value)}
                       disabled={!opts.length}
                     >
                       <MenuItem value="">—</MenuItem>
                       {opts.map((n) => (
-                        <MenuItem key={n.id} value={n.id}>{(n as any).nameTk || n.name}</MenuItem>
+                        <MenuItem key={n.id} value={n.id}>{categoryTitle(n)}</MenuItem>
                       ))}
                     </TextField>
                   </Grid>
                 ))}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth label="Stock" type="number" inputProps={{ min: 0 }} value={stock} onChange={(e) => setStock(parseInt(e.target.value || '0', 10))} />
+                  <TextField fullWidth label={t('products.form.fieldStock')} type="number" inputProps={{ min: 0 }} value={stock} onChange={(e) => setStock(parseInt(e.target.value || '0', 10))} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <TextField fullWidth select label="Status" value={status} onChange={(e) => setStatus(e.target.value as any)}>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
+                  <TextField fullWidth select label={t('products.form.fieldStatus')} value={status} onChange={(e) => setStatus(e.target.value as any)}>
+                    <MenuItem value="active">{t('products.form.statusActive')}</MenuItem>
+                    <MenuItem value="inactive">{t('products.form.statusInactive')}</MenuItem>
                   </TextField>
                 </Grid>
               </Grid>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-                <Typography variant="body2" color="text.secondary">Upload Images</Typography>
-                <Button sx={{ mt: 1 }} component="label" variant="outlined">Choose Files
+                <Typography variant="body2" color="text.secondary">{t('products.form.uploadImages')}</Typography>
+                <Button sx={{ mt: 1 }} component="label" variant="outlined">{t('products.form.chooseFiles')}
                   <input hidden type="file" multiple accept="image/*" onChange={(e) => onPickImages(e.target.files)} />
                 </Button>
                 <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
@@ -296,8 +306,8 @@ export default function ProductForm() {
             </Grid>
             <Grid size={{ xs: 12 }}>
               <Box display="flex" gap={1}>
-                <Button color="primary" onClick={submit}>{editing ? 'Save' : 'Create'}</Button>
-                <Button variant="outlined" onClick={() => navigate(-1)}>Cancel</Button>
+                <Button color="primary" onClick={submit}>{editing ? t('products.form.actionsSave') : t('products.form.actionsCreate')}</Button>
+                <Button variant="outlined" onClick={() => navigate(-1)}>{t('products.form.actionsCancel')}</Button>
               </Box>
             </Grid>
           </Grid>
