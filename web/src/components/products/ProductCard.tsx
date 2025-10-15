@@ -94,14 +94,31 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
   }, [images.length, imgIndex]);
 
   return (
-    <Card sx={{ borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <CardActionArea component={RouterLink} to={product ? `/product/${product.id}` : '#'} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', height: '100%' }}>
+    <Card
+      sx={{
+        borderRadius: 3,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        transition: 'transform 180ms ease, box-shadow 180ms ease',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: 6,
+        },
+      }}
+    >
+      <CardActionArea
+        component={RouterLink}
+        to={product ? `/product/${product.id}` : '#'}
+        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', height: '100%' }}
+      >
         <Box
           sx={{
             position: 'relative',
             width: '100%',
             height: 200,
-            bgcolor: 'grey.100',
+            bgcolor: '#fff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -160,7 +177,17 @@ export const ProductCard: React.FC<Props> = ({ product, loading = false }) => {
             </Stack>
           )}
         </Box>
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 0.75, flexGrow: 1, width: '100%' }}>
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0.75,
+            flexGrow: 1,
+            width: '100%',
+            bgcolor: 'grey.50',
+          }}
+        >
           <Typography variant="caption" color="text.secondary" noWrap>
             {categoryName || t('product.uncategorized')}
           </Typography>
