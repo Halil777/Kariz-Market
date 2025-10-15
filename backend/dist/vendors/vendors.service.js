@@ -40,19 +40,19 @@ let VendorsService = class VendorsService {
             commissionValue: '0',
             location: dto.location,
         });
-        await this.vendorRepo.save(vendor);
+        const savedVendor = await this.vendorRepo.save(vendor);
         const passwordHash = await bcrypt.hash(dto.password, 10);
         const user = this.userRepo.create({
             email: dto.email,
-            phone: dto.phone,
+            phone: dto.phone?.trim() ? dto.phone.trim() : null,
             passwordHash,
             role: role_enum_1.Role.VendorUser,
-            vendorId: vendor.id,
-            displayName: dto.displayName || dto.name,
+            vendorId: savedVendor.id,
+            displayName: dto.displayName?.trim() || dto.name,
             isActive: true,
         });
         await this.userRepo.save(user);
-        return { vendorId: vendor.id };
+        return { vendorId: savedVendor.id };
     }
     async list() {
         const vendors = await this.vendorRepo.find({ order: { createdAt: 'DESC' } });

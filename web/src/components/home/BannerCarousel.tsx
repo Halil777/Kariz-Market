@@ -1,10 +1,10 @@
-import React from 'react';
-import { Box, Typography } from '@mui/material';
-import Slider from 'react-slick';
-import { LazyLoadImage } from 'react-lazy-load-image-component';
-import { useTranslation } from 'react-i18next';
-import { fetchBanners, type Banner } from '../../api/banners';
-import { API_BASE_URL } from '../../api/client';
+import React from "react";
+import { Box, Typography } from "@mui/material";
+import Slider from "react-slick";
+import { LazyLoadImage } from "react-lazy-load-image-component";
+import { useTranslation } from "react-i18next";
+import { fetchBanners, type Banner } from "../../api/banners";
+import { API_BASE_URL } from "../../api/client";
 
 type Slide = { id: number; color: string; image?: string; meta?: Banner };
 
@@ -15,12 +15,16 @@ type Props = {
 };
 
 const FALLBACK_SLIDES: Slide[] = [
-  { id: 1, color: '#fde6cf' },
-  { id: 2, color: '#e0f0ff' },
-  { id: 3, color: '#e9f7ef' },
+  { id: 1, color: "#fde6cf" },
+  { id: 2, color: "#e0f0ff" },
+  { id: 3, color: "#e9f7ef" },
 ];
 
-export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FALLBACK_SLIDES, height = 340 }) => {
+export const BannerCarousel: React.FC<Props> = ({
+  intervalMs = 4000,
+  slides = FALLBACK_SLIDES,
+  height = 340,
+}) => {
   const sliderRef = React.useRef<Slider | null>(null);
   const [remote, setRemote] = React.useState<Banner[] | null>(null);
   const [index, setIndex] = React.useState(0);
@@ -32,13 +36,16 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
       .catch(() => setRemote(null));
   }, []);
 
-  const language = React.useMemo<'ru' | 'tk'>(() => (i18n.language?.toLowerCase().startsWith('ru') ? 'ru' : 'tk'), [i18n.language]);
+  const language = React.useMemo<"ru" | "tk">(
+    () => (i18n.language?.toLowerCase().startsWith("ru") ? "ru" : "tk"),
+    [i18n.language]
+  );
 
   const apiOrigin = React.useMemo(() => {
     try {
       return new URL(API_BASE_URL).origin;
     } catch {
-      return '';
+      return "";
     }
   }, []);
 
@@ -48,8 +55,10 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
       .filter((banner) => banner.isActive !== false)
       .map((banner, idx) => ({
         id: idx + 1,
-        color: '#f5f5f7',
-        image: banner.imageUrl?.startsWith('http') ? banner.imageUrl : `${apiOrigin}${banner.imageUrl}`,
+        color: "#f5f5f7",
+        image: banner.imageUrl?.startsWith("http")
+          ? banner.imageUrl
+          : `${apiOrigin}${banner.imageUrl}`,
         meta: banner,
       }));
   }, [remote, apiOrigin]);
@@ -78,7 +87,7 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
       slidesToScroll: 1,
       speed: 600,
       centerMode: false,
-      centerPadding: '0px',
+      centerPadding: "0px",
       beforeChange: handleBeforeChange,
       responsive: [
         {
@@ -96,7 +105,7 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
         },
       ],
     }),
-    [count, intervalMs, handleBeforeChange, slidesToShow],
+    [count, intervalMs, handleBeforeChange, slidesToShow]
   );
 
   React.useEffect(() => {
@@ -115,59 +124,67 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
     setIndex(0);
   }, [remoteSlides.length]);
 
-  const currentMeta = remoteSlides.length > 0 && count > 0 ? remoteSlides[index % remoteSlides.length]?.meta ?? null : null;
+  const currentMeta =
+    remoteSlides.length > 0 && count > 0
+      ? remoteSlides[index % remoteSlides.length]?.meta ?? null
+      : null;
 
   const localized = React.useCallback(
-    <T extends Record<string, unknown>>(entity: T | null | undefined, base: string) => {
+    <T extends Record<string, unknown>>(
+      entity: T | null | undefined,
+      base: string
+    ) => {
       if (!entity) return undefined;
-      const primaryKey = `${base}${language === 'ru' ? 'Ru' : 'Tm'}` as keyof T;
-      const fallbackKey = `${base}${language === 'ru' ? 'Tm' : 'Ru'}` as keyof T;
+      const primaryKey = `${base}${language === "ru" ? "Ru" : "Tm"}` as keyof T;
+      const fallbackKey = `${base}${
+        language === "ru" ? "Tm" : "Ru"
+      }` as keyof T;
       return (
         (entity[primaryKey] as string | null | undefined) ??
         (entity[fallbackKey] as string | null | undefined) ??
         (entity[base as keyof T] as string | null | undefined)
       );
     },
-    [language],
+    [language]
   );
 
   return (
     <Box
       sx={{
-        position: 'relative',
+        position: "relative",
         borderRadius: 3,
-        overflow: 'hidden',
-        bgcolor: 'grey.100',
+        overflow: "hidden",
+        bgcolor: "grey.100",
         boxShadow: 1,
-        '.slick-slider': { height, overflow: 'visible' },
-        '.slick-list': { height: '100%', mx: '-5px', overflow: 'visible' },
-        '.slick-slide': {
-          px: '5px',
-          transition: 'box-shadow 0.4s ease',
+        ".slick-slider": { height, overflow: "visible" },
+        ".slick-list": { height: "100%", mx: "-5px", overflow: "visible" },
+        ".slick-slide": {
+          px: "5px",
+          transition: "box-shadow 0.4s ease",
         },
-        '.slick-slide > div': { height: '100%' },
-        '.slick-slide .banner-carousel__slide': {
-          height: '100%',
-          borderRadius: 24,
-          overflow: 'hidden',
-          transition: 'box-shadow 0.4s ease',
+        ".slick-slide > div": { height: "100%" },
+        ".slick-slide .banner-carousel__slide": {
+          height: "40vh",
+          borderRadius: 2,
+          overflow: "hidden",
+          transition: "box-shadow 0.4s ease",
           boxShadow: 1,
         },
-        '.banner-carousel__image': {
-          display: 'block',
-          width: '100%',
-          height: '100%',
+        ".banner-carousel__image": {
+          display: "block",
+          width: "100%",
+          height: "100%",
         },
-        '.slick-slide.slick-active .banner-carousel__slide': {
+        ".slick-slide.slick-active .banner-carousel__slide": {
           boxShadow: 4,
         },
-        '.slick-dots': { bottom: 16 },
-        '.slick-dots li button:before': {
+        ".slick-dots": { bottom: 16 },
+        ".slick-dots li button:before": {
           fontSize: 10,
-          color: 'rgba(255,255,255,0.55)',
+          color: "rgba(255,255,255,0.55)",
           opacity: 1,
         },
-        '.slick-dots li.slick-active button:before': { color: '#fff' },
+        ".slick-dots li.slick-active button:before": { color: "#fff" },
       }}
     >
       <Slider
@@ -179,31 +196,32 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
         {currentSlides.map((slide) => (
           <Box
             key={slide.id}
-            className='banner-carousel__slide'
+            className="banner-carousel__slide"
             sx={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
+              position: "relative",
+              width: "100%",
+              height: "40vh",
               bgcolor: slide.color,
             }}
           >
             {slide.image ? (
               <LazyLoadImage
                 src={slide.image}
-                alt={localized(slide.meta, 'title') || 'banner'}
-                effect='blur'
+                alt={localized(slide.meta, "title") || "banner"}
+                effect="blur"
                 draggable={false}
-                width='100%'
-                height='100%'
-                style={{ objectFit: 'cover', display: 'block' }}
-                wrapperClassName='banner-carousel__image'
+                width="100%"
+                height="100%"
+                style={{ display: "block" }}
+                wrapperClassName="banner-carousel__image"
               />
             ) : (
               <Box
                 sx={{
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.05))',
+                  width: "100%",
+                  height: "100%",
+                  background:
+                    "linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.05))",
                 }}
               />
             )}
@@ -214,34 +232,38 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
       {currentMeta && (
         <Box
           sx={{
-            position: 'absolute',
+            position: "absolute",
             inset: 0,
             p: { xs: 2, md: 4 },
-            display: 'flex',
-            alignItems: 'center',
-            pointerEvents: 'none',
+            display: "flex",
+            alignItems: "center",
+            pointerEvents: "none",
           }}
         >
           {(() => {
-            const title = localized(currentMeta, 'title');
-            const subtitle = localized(currentMeta, 'subtitle');
+            const title = localized(currentMeta, "title");
+            const subtitle = localized(currentMeta, "subtitle");
             if (!title && !subtitle) return null;
             return (
               <Box
                 sx={{
-                  maxWidth: { xs: '80%', md: '50%' },
-                  bgcolor: 'rgba(255,255,255,0.85)',
+                  maxWidth: { xs: "80%", md: "50%" },
+                  bgcolor: "rgba(255,255,255,0.85)",
                   p: { xs: 2, md: 3 },
                   borderRadius: 2,
                 }}
               >
                 {title && (
-                  <Typography variant='h4' sx={{ fontWeight: 800, mb: 1 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
                     {title}
                   </Typography>
                 )}
                 {subtitle && (
-                  <Typography variant='body1' sx={{ '& p': { m: 0 } }} dangerouslySetInnerHTML={{ __html: subtitle }} />
+                  <Typography
+                    variant="body1"
+                    sx={{ "& p": { m: 0 } }}
+                    dangerouslySetInnerHTML={{ __html: subtitle }}
+                  />
                 )}
               </Box>
             );

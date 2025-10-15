@@ -29,7 +29,7 @@ let VendorsController = class VendorsController {
         return this.vendors.create(dto);
     }
     me(req) {
-        return this.vendors.getMe(req.user.sub);
+        return this.vendors.getMe(req.user.id);
     }
     update(id, dto) {
         return this.vendors.update(id, dto);
