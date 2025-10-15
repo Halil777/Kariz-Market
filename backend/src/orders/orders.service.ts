@@ -74,6 +74,55 @@ export class OrdersService {
     return this.serializeOrders(orders, { includeCustomer: false });
   }
 
+  async listRecentForUser(userId: string, limit = 5): Promise<SerializedOrder[]> {
+    const orders = await this.repo.find({
+      where: { userId },
+      order: { placedAt: 'DESC' },
+      relations: ['items'],
+      take: limit,
+    });
+    return this.serializeOrders(orders, { includeCustomer: false });
+  }
+
+  async getUserSummary(userId: string): Promise<{
+    totalOrders: number;
+    openOrders: number;
+    totalSpent: number;
+    lastOrderAt: string | null;
+  }> {
+    const raw = await this.repo
+      .createQueryBuilder('o')
+      .select('COUNT(o.id)', 'totalOrders')
+      .addSelect('COALESCE(SUM(o.total::numeric), 0)', 'totalSpent')
+      .addSelect(
+        `SUM(CASE WHEN o.status IN (:...openStatuses) THEN 1 ELSE 0 END)`,
+        'openOrders',
+      )
+      .addSelect('MAX(o.placed_at)', 'lastOrderAt')
+      .where('o.user_id = :userId', { userId })
+      .setParameters({ openStatuses: [OrderStatus.Pending, OrderStatus.Processing] })
+      .getRawOne();
+
+    const toNumber = (value: any) => {
+      const num = typeof value === 'string' ? Number(value) : value;
+      return Number.isFinite(num) ? Number(num) : 0;
+    };
+
+    const normalizeDate = (value: any) => {
+      if (!value) return null;
+      if (value instanceof Date) return value.toISOString();
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    };
+
+    return {
+      totalOrders: toNumber(raw?.totalOrders ?? 0),
+      openOrders: toNumber(raw?.openOrders ?? 0),
+      totalSpent: toNumber(raw?.totalSpent ?? 0),
+      lastOrderAt: normalizeDate(raw?.lastOrderAt ?? null),
+    };
+  }
+
   async getForUser(userId: string, id: string): Promise<SerializedOrder> {
     const order = await this.repo.findOne({
       where: { id, userId },

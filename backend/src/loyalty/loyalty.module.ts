@@ -9,7 +9,7 @@ import { LoyaltyController } from './loyalty.controller';
   imports: [TypeOrmModule.forFeature([LoyaltyAccount, LoyaltyTransaction])],
   providers: [LoyaltyService],
   controllers: [LoyaltyController],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, LoyaltyService],
 })
 export class LoyaltyModule {}
 
