@@ -10,14 +10,16 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { register } from '../../api/auth';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const from = (location.state as { from?: string } | null)?.from ?? '/account';
   const [fullName, setFullName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -39,7 +41,7 @@ export const RegisterPage: React.FC = () => {
       localStorage.setItem('customer.accessToken', accessToken);
       localStorage.setItem('customer.refreshToken', refreshToken);
       queryClient.invalidateQueries({ queryKey: ['account-overview'] });
-      navigate('/account');
+      navigate(from);
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 400) {
         setError('Please make sure your details are valid and try again.');

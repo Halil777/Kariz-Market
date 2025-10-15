@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nest
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrdersService } from './orders.service';
 import { CancelOrderDto } from './dto/cancel-order.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('orders')
@@ -11,6 +12,11 @@ export class OrdersController {
   @Get()
   list(@Req() req: any) {
     return this.orders.listForUser(req.user.id);
+  }
+
+  @Post()
+  create(@Req() req: any, @Body() body: CreateOrderDto) {
+    return this.orders.placeOrder(req.user.id, body);
   }
 
   @Post(':id/cancel')

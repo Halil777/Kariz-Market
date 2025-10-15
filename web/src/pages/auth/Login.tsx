@@ -9,14 +9,16 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { login } from '../../api/auth';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const from = (location.state as { from?: string } | null)?.from ?? '/account';
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
@@ -31,7 +33,7 @@ export const LoginPage: React.FC = () => {
       localStorage.setItem('customer.accessToken', accessToken);
       localStorage.setItem('customer.refreshToken', refreshToken);
       queryClient.invalidateQueries({ queryKey: ['account-overview'] });
-      navigate('/account');
+      navigate(from);
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 401) {
         setError('Invalid email or password. Please try again.');

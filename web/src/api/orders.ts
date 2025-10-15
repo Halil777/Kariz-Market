@@ -28,6 +28,11 @@ export type OrderSummary = {
   itemCount: number;
 };
 
+export type CreateOrderPayload = {
+  paymentMethod: 'cash' | 'online';
+  items: Array<{ variantId: string; qty: number }>;
+};
+
 export const listOrders = async (): Promise<OrderSummary[]> => {
   const { data } = await api.get<OrderSummary[]>('/orders');
   return data;
@@ -40,6 +45,11 @@ export const getOrder = async (id: string): Promise<OrderSummary> => {
 
 export const cancelOrder = async (id: string, reason?: string): Promise<OrderSummary> => {
   const { data } = await api.post<OrderSummary>(`/orders/${id}/cancel`, reason ? { reason } : {});
+  return data;
+};
+
+export const createOrder = async (payload: CreateOrderPayload): Promise<OrderSummary> => {
+  const { data } = await api.post<OrderSummary>('/orders', payload);
   return data;
 };
 
