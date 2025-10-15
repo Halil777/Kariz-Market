@@ -11,7 +11,7 @@ export class ProductVariant {
   product: Product;
 
   @Index()
-  @Column({ name: 'product_id' })
+  @Column({ name: 'product_id', type: 'uuid' })
   productId: string;
 
   @Index({ unique: true })

@@ -24,7 +24,7 @@ export class Product {
   vendor?: Vendor | null;
 
   @Index()
-  @Column({ name: 'vendor_id', nullable: true })
+  @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
   vendorId?: string | null;
 
   @ManyToOne(() => Category, { nullable: true, onDelete: 'SET NULL' })
@@ -32,7 +32,7 @@ export class Product {
   category?: Category | null;
 
   @Index()
-  @Column({ name: 'category_id', nullable: true })
+  @Column({ name: 'category_id', type: 'uuid', nullable: true })
   categoryId?: string | null;
 
   @Index({ unique: true })

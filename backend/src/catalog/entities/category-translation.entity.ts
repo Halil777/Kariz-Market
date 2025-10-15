@@ -10,7 +10,7 @@ export class CategoryTranslation {
   category: Category;
 
   @Index()
-  @Column({ name: 'category_id' })
+  @Column({ name: 'category_id', type: 'uuid' })
   categoryId: string;
 
   @Index()

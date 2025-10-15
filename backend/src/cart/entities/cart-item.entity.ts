@@ -11,10 +11,10 @@ export class CartItem {
   cart: Cart;
 
   @Index()
-  @Column({ name: 'cart_id' })
+  @Column({ name: 'cart_id', type: 'uuid' })
   cartId: string;
 
-  @Column({ name: 'variant_id' })
+  @Column({ name: 'variant_id', type: 'uuid' })
   variantId: string;
 
   @Column({ type: 'int', default: 1 })

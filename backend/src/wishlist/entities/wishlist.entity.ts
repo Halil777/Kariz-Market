@@ -7,13 +7,13 @@ export class WishlistItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id', nullable: true })
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId?: string | null;
 
   @Column({ name: 'device_id', nullable: true })
   deviceId?: string | null;
 
-  @Column({ name: 'product_id' })
+  @Column({ name: 'product_id', type: 'uuid' })
   productId: string;
 
   @CreateDateColumn({ name: 'created_at' })

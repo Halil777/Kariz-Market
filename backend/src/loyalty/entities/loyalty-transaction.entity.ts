@@ -11,7 +11,7 @@ export class LoyaltyTransaction {
   account: LoyaltyAccount;
 
   @Index()
-  @Column({ name: 'account_id' })
+  @Column({ name: 'account_id', type: 'uuid' })
   accountId: string;
 
   @Column()
