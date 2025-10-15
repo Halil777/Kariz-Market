@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Avatar, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { fetchCategoryTree, type CategoryNode } from '@/api/categories'
 import { useQuery } from '@tanstack/react-query'
 import { absoluteAssetUrl } from '@/api/client'
 import { uploadFile } from '@/api/upload'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { useTranslation } from 'react-i18next'
 
 export type AdminProductFormValue = {
   id?: string
@@ -30,6 +31,7 @@ type Props = {
 }
 
 export default function AdminProductForm({ open, initial, onClose, onSubmit }: Props) {
+  const { t, i18n } = useTranslation()
   const { data: tree = [] } = useQuery({ queryKey: ['admin','categories','tree'], queryFn: fetchCategoryTree })
   const [status, setStatus] = useState<'active'|'inactive'>('active')
   const [sku, setSku] = useState('')
@@ -42,10 +44,22 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
   const [stock, setStock] = useState<number>(0)
   const [images, setImages] = useState<string[]>([])
   const [categoryPath, setCategoryPath] = useState<string[]>([])
-  const [error, setError] = useState<string>('')
+  const [errorKey, setErrorKey] = useState<string | null>(null)
   const [specs, setSpecs] = useState<Array<{ titleTk?: string; titleRu?: string; textTk?: string; textRu?: string }>>([])
+  const currentLang = useMemo(() => {
+    const lang = i18n.resolvedLanguage || i18n.language || 'en'
+    if (lang.startsWith('ru')) return 'ru'
+    if (lang.startsWith('tk')) return 'tk'
+    return 'en'
+  }, [i18n.language, i18n.resolvedLanguage])
+  const localizeCategoryName = useCallback((node: CategoryNode) => {
+    if (currentLang === 'ru') return (node as any).nameRu || (node as any).nameTk || node.name
+    if (currentLang === 'tk') return (node as any).nameTk || (node as any).nameRu || node.name
+    return node.name || (node as any).nameRu || (node as any).nameTk
+  }, [currentLang])
 
   useEffect(() => {
+    setErrorKey(null)
     if (initial) {
       setStatus((initial.status as any) || 'active')
       setSku((initial.sku as any) || '')
@@ -152,8 +166,8 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
   }
 
   const submit = () => {
-    setError('')
-    if (!nameTk && !nameRu) { setError('Name (TM) or Name (RU) required'); return }
+    setErrorKey(null)
+    if (!nameTk && !nameRu) { setErrorKey('products.form.errors.nameRequired'); return }
     const payload: AdminProductFormValue = {
       id: (initial as any)?.id,
       sku: sku || undefined,
@@ -174,44 +188,44 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{initial?.id ? 'Edit Product' : 'Add Product'}</DialogTitle>
+      <DialogTitle>{t(initial?.id ? 'products.form.editTitle' : 'products.form.addTitle')}</DialogTitle>
       <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {errorKey && <Alert severity="error" sx={{ mb: 2 }}>{t(errorKey)}</Alert>}
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={6}><TextField label="Name (TM)" value={nameTk} onChange={(e) => setNameTk(e.target.value)} fullWidth /></Grid>
-          <Grid item xs={12} md={6}><TextField label="Name (RU)" value={nameRu} onChange={(e) => setNameRu(e.target.value)} fullWidth /></Grid>
-          <Grid item xs={12} md={6}><TextField label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} fullWidth /></Grid>
-          <Grid item xs={12} md={6}><TextField select label="Unit" value={unit} onChange={(e) => setUnit(e.target.value as any)} fullWidth>
-            <MenuItem value="count">san</MenuItem>
-            <MenuItem value="kg">kg</MenuItem>
-            <MenuItem value="l">litr</MenuItem>
+          <Grid item xs={12} md={6}><TextField label={t('products.form.labels.nameTk')} value={nameTk} onChange={(e) => setNameTk(e.target.value)} fullWidth /></Grid>
+          <Grid item xs={12} md={6}><TextField label={t('products.form.labels.nameRu')} value={nameRu} onChange={(e) => setNameRu(e.target.value)} fullWidth /></Grid>
+          <Grid item xs={12} md={6}><TextField label={t('products.form.labels.sku')} value={sku} onChange={(e) => setSku(e.target.value)} fullWidth /></Grid>
+          <Grid item xs={12} md={6}><TextField select label={t('products.form.labels.unit')} value={unit} onChange={(e) => setUnit(e.target.value as any)} fullWidth>
+            <MenuItem value="count">{t('products.form.units.count')}</MenuItem>
+            <MenuItem value="kg">{t('products.form.units.kg')}</MenuItem>
+            <MenuItem value="l">{t('products.form.units.l')}</MenuItem>
           </TextField></Grid>
-          <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Price" value={price} onChange={(e) => onChangePrice(e.target.value)} fullWidth /></Grid>
-          <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Old Price" value={compareAt} onChange={(e) => onChangeCompareAt(e.target.value)} fullWidth /></Grid>
-          <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label="Discount (%)" value={discountPct} onChange={(e) => onChangeDiscount(e.target.value)} fullWidth /></Grid>
+          <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label={t('products.form.labels.price')} value={price} onChange={(e) => onChangePrice(e.target.value)} fullWidth /></Grid>
+          <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label={t('products.form.labels.compareAt')} value={compareAt} onChange={(e) => onChangeCompareAt(e.target.value)} fullWidth /></Grid>
+          <Grid item xs={12} md={4}><TextField type="number" inputProps={{ step: '0.01' }} label={t('products.form.labels.discountPct')} value={discountPct} onChange={(e) => onChangeDiscount(e.target.value)} fullWidth /></Grid>
           {levels.map((opts, i) => (
             <Grid key={i} item xs={12} md={6}>
-              <TextField select fullWidth label={i === 0 ? 'Category' : `Subcategory ${i}`}
+              <TextField select fullWidth label={i === 0 ? t('products.form.labels.category') : t('products.form.labels.subcategoryWithIndex', { index: i })}
                 value={categoryPath[i] || ''}
                 onChange={(e) => onSelectLevel(i, e.target.value)}
                 disabled={!opts.length}
               >
-                <MenuItem value="">{i === 0 ? 'None' : '—'}</MenuItem>
+                <MenuItem value="">{i === 0 ? t('products.form.options.none') : t('products.form.options.noneChild')}</MenuItem>
                 {opts.map((n) => (
-                  <MenuItem key={n.id} value={n.id}>{(n as any).nameTk || n.name}</MenuItem>
+                  <MenuItem key={n.id} value={n.id}>{localizeCategoryName(n)}</MenuItem>
                 ))}
               </TextField>
             </Grid>
           ))}
-          <Grid item xs={12} md={6}><TextField type="number" label="Stock" value={stock} onChange={(e) => setStock(parseInt(e.target.value, 10) || 0)} fullWidth /></Grid>
-          <Grid item xs={12} md={6}><TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value as any)} fullWidth>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
+          <Grid item xs={12} md={6}><TextField type="number" label={t('products.form.labels.stock')} value={stock} onChange={(e) => setStock(parseInt(e.target.value, 10) || 0)} fullWidth /></Grid>
+          <Grid item xs={12} md={6}><TextField select label={t('products.form.labels.status')} value={status} onChange={(e) => setStatus(e.target.value as any)} fullWidth>
+            <MenuItem value="active">{t('products.status.active')}</MenuItem>
+            <MenuItem value="inactive">{t('products.status.inactive')}</MenuItem>
           </TextField></Grid>
           <Grid item xs={12}>
             <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary">Upload Images</Typography>
-              <Button sx={{ mt: 1 }} component="label" variant="outlined">Choose Files
+              <Typography variant="body2" color="text.secondary">{t('products.form.upload.title')}</Typography>
+              <Button sx={{ mt: 1 }} component="label" variant="outlined">{t('products.form.upload.choose')}
                 <input hidden type="file" multiple accept="image/*" onChange={(e) => onPickImages(e.target.files)} />
               </Button>
               <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
@@ -227,23 +241,23 @@ export default function AdminProductForm({ open, initial, onClose, onSubmit }: P
         </Grid>
         <Grid item xs={12}>
           <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Characteristics</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{t('products.form.characteristicsTitle')}</Typography>
             {specs.map((row, idx) => (
               <Grid container spacing={1} key={idx} sx={{ mb: 1 }}>
-                <Grid item xs={12} md={3}><TextField fullWidth label="Title (TM)" value={row.titleTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleTk: e.target.value } : r))} /></Grid>
-                <Grid item xs={12} md={3}><TextField fullWidth label="Title (RU)" value={row.titleRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleRu: e.target.value } : r))} /></Grid>
-                <Grid item xs={12} md={5}><TextField fullWidth label="Text (TM)" value={row.textTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textTk: e.target.value } : r))} /></Grid>
-                <Grid item xs={12} md={1}><Button color="error" onClick={() => setSpecs(prev => prev.filter((_,i)=>i!==idx))}>Remove</Button></Grid>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Text (RU)" value={row.textRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textRu: e.target.value } : r))} /></Grid>
+                <Grid item xs={12} md={3}><TextField fullWidth label={t('products.form.labels.titleTk')} value={row.titleTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleTk: e.target.value } : r))} /></Grid>
+                <Grid item xs={12} md={3}><TextField fullWidth label={t('products.form.labels.titleRu')} value={row.titleRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, titleRu: e.target.value } : r))} /></Grid>
+                <Grid item xs={12} md={5}><TextField fullWidth label={t('products.form.labels.textTk')} value={row.textTk || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textTk: e.target.value } : r))} /></Grid>
+                <Grid item xs={12} md={1}><Button color="error" onClick={() => setSpecs(prev => prev.filter((_,i)=>i!==idx))}>{t('products.form.buttons.remove')}</Button></Grid>
+                <Grid item xs={12} md={6}><TextField fullWidth label={t('products.form.labels.textRu')} value={row.textRu || ''} onChange={(e) => setSpecs(prev => prev.map((r,i)=> i===idx ? { ...r, textRu: e.target.value } : r))} /></Grid>
               </Grid>
             ))}
-            <Button variant="outlined" onClick={() => setSpecs(prev => [...prev, {}])}>Add characteristic</Button>
+            <Button variant="outlined" onClick={() => setSpecs(prev => [...prev, {}])}>{t('products.form.buttons.addCharacteristic')}</Button>
           </Box>
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="inherit">Cancel</Button>
-        <Button onClick={submit} variant="contained">{initial?.id ? 'Save' : 'Add'}</Button>
+        <Button onClick={onClose} color="inherit">{t('products.form.buttons.cancel')}</Button>
+        <Button onClick={submit} variant="contained">{t(initial?.id ? 'products.form.buttons.save' : 'products.form.buttons.add')}</Button>
       </DialogActions>
     </Dialog>
   )
