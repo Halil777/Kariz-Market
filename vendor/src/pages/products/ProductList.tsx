@@ -32,10 +32,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { deleteProduct, fetchProducts, type ProductDto } from '../../api/products'
 import { fetchCombinedCategories, type CategoryDto } from '../../api/categories'
 import { absoluteAssetUrl } from '../../api/upload'
+import { useTranslation } from 'react-i18next'
 
 type Row = ProductDto & { name: string }
 
 export default function ProductList() {
+  const { t, i18n } = useTranslation()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [parentFilter, setParentFilter] = useState<string>('')
@@ -67,11 +69,29 @@ export default function ProductList() {
     return set
   }, [parentFilter, categories])
 
+  const language = i18n.language
+  const getProductName = (p: any) => {
+    if (language === 'ru') return p.nameRu || p.nameTk || p.sku
+    if (language === 'tk') return p.nameTk || p.nameRu || p.sku
+    return p.nameRu || p.nameTk || p.sku
+  }
+  const getCategoryName = (c?: any) => {
+    if (!c) return ''
+    if (language === 'ru') return c.nameRu || c.nameTk || c.name || ''
+    if (language === 'tk') return c.nameTk || c.nameRu || c.name || ''
+    return c.nameRu || c.nameTk || c.name || ''
+  }
+
   const rows: Row[] = useMemo(() => items.map((p) => ({
     ...p,
-    name: (p as any).nameTk || (p as any).nameRu || p.sku,
+    name: getProductName(p),
     category: '',
-  })) as any, [items])
+  })) as any, [items, language])
+  const statusLabel = (status: string) => {
+    if (status === 'active') return t('products.status.active')
+    if (status === 'inactive') return t('products.status.inactive')
+    return status
+  }
   const filtered = useMemo(() => rows.filter((p) => {
     const byStatus = (status === 'all' || p.status === status)
     const byQuery = (p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()))
@@ -91,8 +111,8 @@ export default function ProductList() {
       <BreadcrumbsNav />
       <Card sx={{ width: '100%' }}>
         <CardHeader
-          title="Products"
-          action={<Button startIcon={<AddIcon />} component={Link} to="/products/new">Add Product</Button>}
+          title={t('products.list.title')}
+          action={<Button startIcon={<AddIcon />} component={Link} to="/products/new">{t('products.list.addProduct')}</Button>}
         />
         <CardContent sx={{ p: 0 }}>
           <Box sx={{ p: 2 }}>
@@ -100,24 +120,24 @@ export default function ProductList() {
               <TextField
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by name or SKU"
+                placeholder={t('products.list.searchPlaceholder')}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
               />
-              <TextField select label="Status" value={status} onChange={(e) => setStatus(e.target.value as any)} sx={{ minWidth: 160 }}>
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
+              <TextField select label={t('products.list.statusLabel')} value={status} onChange={(e) => setStatus(e.target.value as any)} sx={{ minWidth: 160 }}>
+                <MenuItem value="all">{t('products.list.statusAll')}</MenuItem>
+                <MenuItem value="active">{t('products.status.active')}</MenuItem>
+                <MenuItem value="inactive">{t('products.status.inactive')}</MenuItem>
               </TextField>
-              <TextField select label="Category" value={parentFilter} onChange={(e) => { setParentFilter(e.target.value); setCategoryFilter(''); setPage(0) }} sx={{ minWidth: 200 }}>
-                <MenuItem value="">All</MenuItem>
+              <TextField select label={t('products.list.categoryLabel')} value={parentFilter} onChange={(e) => { setParentFilter(e.target.value); setCategoryFilter(''); setPage(0) }} sx={{ minWidth: 200 }}>
+                <MenuItem value="">{t('products.list.categoryAll')}</MenuItem>
                 {parentOptions.map((c: any) => (
-                  <MenuItem key={c.id} value={c.id}>{c.nameTk || c.name}</MenuItem>
+                  <MenuItem key={c.id} value={c.id}>{getCategoryName(c)}</MenuItem>
                 ))}
               </TextField>
-              <TextField select label="Subcategory" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(0) }} sx={{ minWidth: 200 }} disabled={!parentFilter}>
-                <MenuItem value="">All</MenuItem>
+              <TextField select label={t('products.list.subcategoryLabel')} value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(0) }} sx={{ minWidth: 200 }} disabled={!parentFilter}>
+                <MenuItem value="">{t('products.list.categoryAll')}</MenuItem>
                 {childOptions.map((c: any) => (
-                  <MenuItem key={c.id} value={c.id}>{c.nameTk || c.name}</MenuItem>
+                  <MenuItem key={c.id} value={c.id}>{getCategoryName(c)}</MenuItem>
                 ))}
               </TextField>
               <Box flexGrow={1} />
@@ -141,14 +161,14 @@ export default function ProductList() {
                       onChange={(e) => setSelected(e.target.checked ? filtered.map((f) => f.id) : [])}
                     />
                   </TableCell>
-                  <TableCell>Image</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>SKU</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell align="right">Price</TableCell>
-                  <TableCell align="right">Stock</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{t('products.list.columnImage')}</TableCell>
+                  <TableCell>{t('products.list.columnName')}</TableCell>
+                  <TableCell>{t('products.list.columnSku')}</TableCell>
+                  <TableCell>{t('products.list.columnCategory')}</TableCell>
+                  <TableCell align="right">{t('products.list.columnPrice')}</TableCell>
+                  <TableCell align="right">{t('products.list.columnStock')}</TableCell>
+                  <TableCell>{t('products.list.columnStatus')}</TableCell>
+                  <TableCell align="right">{t('products.list.columnActions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -165,14 +185,14 @@ export default function ProductList() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Link to={`/products/${p.id}`}>{p.name}</Link>
+                      <Link to={`/products/${p.id}`}>{getProductName(p)}</Link>
                     </TableCell>
                     <TableCell>{p.sku}</TableCell>
-                    <TableCell>{(() => { const c = p.categoryId ? catMap.get(p.categoryId) as any : undefined; return c ? (c.nameTk || c.name) : '' })()}</TableCell>
+                    <TableCell>{(() => { const c = p.categoryId ? catMap.get(p.categoryId) as any : undefined; return getCategoryName(c) })()}</TableCell>
                     <TableCell align="right">${Number(p.price).toFixed(2)}</TableCell>
                     <TableCell align="right">{p.stock}</TableCell>
                     <TableCell>
-                      <Chip size="small" label={p.status} color={p.status === 'active' ? 'success' : 'default'} />
+                      <Chip size="small" label={statusLabel(p.status)} color={p.status === 'active' ? 'success' : 'default'} />
                     </TableCell>
                     <TableCell align="right">
                       <IconButton color="error" onClick={() => mDelete.mutate(p.id)}><DeleteIcon /></IconButton>

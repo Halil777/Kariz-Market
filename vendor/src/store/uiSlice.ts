@@ -9,10 +9,17 @@ type UIState = {
   language: string
 }
 
+const storedLanguage = localStorage.getItem('lang')
+const normalizedLanguage = storedLanguage === 'fa' ? 'tk' : (storedLanguage || 'en')
+
+if (storedLanguage === 'fa') {
+  localStorage.setItem('lang', 'tk')
+}
+
 const initialState: UIState = {
   sidebarOpen: true,
   mode: (localStorage.getItem('mode') as PaletteMode) || 'light',
-  language: localStorage.getItem('lang') || 'en',
+  language: normalizedLanguage,
 }
 
 const uiSlice = createSlice({

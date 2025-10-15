@@ -14,7 +14,8 @@ export default function LangSwitcher() {
   return (
     <Select size="small" value={lang} onChange={handleChange} sx={{ mr: 1, minWidth: 80 }}>
       <MenuItem value="en">EN</MenuItem>
-      <MenuItem value="fa">FA</MenuItem>
+      <MenuItem value="ru">RU</MenuItem>
+      <MenuItem value="tk">TM</MenuItem>
     </Select>
   )
 }
