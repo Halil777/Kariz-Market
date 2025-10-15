@@ -61,6 +61,12 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
     setIndex(next);
   }, []);
 
+  const slidesToShow = React.useMemo(() => {
+    if (count >= 3) return 3;
+    if (count === 2) return 2;
+    return 1;
+  }, [count]);
+
   const sliderSettings = React.useMemo(
     () => ({
       dots: count > 1,
@@ -69,12 +75,29 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
       autoplay: count > 1,
       autoplaySpeed: intervalMs,
       pauseOnHover: true,
-      slidesToShow: 1,
+      slidesToShow,
       slidesToScroll: 1,
       speed: 600,
+      centerMode: count > 1,
+      centerPadding: '0px',
       beforeChange: handleBeforeChange,
+      responsive: [
+        {
+          breakpoint: 900,
+          settings: {
+            slidesToShow: Math.min(2, Math.max(1, slidesToShow)),
+          },
+        },
+        {
+          breakpoint: 600,
+          settings: {
+            slidesToShow: 1,
+            centerMode: false,
+          },
+        },
+      ],
     }),
-    [count, intervalMs, handleBeforeChange],
+    [count, intervalMs, handleBeforeChange, slidesToShow],
   );
 
   React.useEffect(() => {
@@ -117,9 +140,29 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
         overflow: 'hidden',
         bgcolor: 'grey.100',
         boxShadow: 1,
-        '.slick-slider': { height },
-        '.slick-list': { height: '100%' },
+        '.slick-slider': { height, overflow: 'visible' },
+        '.slick-list': { height: '100%', mx: '-5px', overflow: 'visible' },
+        '.slick-slide': {
+          px: '5px',
+          transition: 'transform 0.4s ease, opacity 0.4s ease',
+        },
         '.slick-slide > div': { height: '100%' },
+        '.slick-slide .banner-carousel__slide': {
+          height: '100%',
+          borderRadius: 24,
+          overflow: 'hidden',
+          transform: 'scale(0.5)',
+          transformOrigin: 'center',
+          transition: 'transform 0.4s ease, box-shadow 0.4s ease',
+          boxShadow: 1,
+        },
+        '.slick-center .banner-carousel__slide': {
+          transform: 'scale(1)',
+          boxShadow: 4,
+        },
+        '.slick-center + .slick-slide .banner-carousel__slide, .slick-slide.slick-active .banner-carousel__slide': {
+          transform: 'scale(0.5)',
+        },
         '.slick-dots': { bottom: 16 },
         '.slick-dots li button:before': {
           fontSize: 10,
@@ -138,6 +181,7 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
         {currentSlides.map((slide) => (
           <Box
             key={slide.id}
+            className='banner-carousel__slide'
             sx={{
               position: 'relative',
               width: '100%',
