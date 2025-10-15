@@ -8,15 +8,29 @@ import {
   Stack,
   Chip,
   Skeleton,
+  IconButton,
+  CircularProgress,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProduct, type ProductSummary } from "../api/products";
+import { fetchProduct, fetchHomeHighlights, type ProductSummary } from "../api/products";
 import { absoluteAssetUrl } from "../api/client";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { addItem as addCartItem } from "../store/slices/cartSlice";
+import {
+  addItem as addCartItem,
+  removeItem as removeCartItem,
+  updateQty as updateCartQty,
+} from "../store/slices/cartSlice";
 import { addToCart as apiAddToCart } from "../api/cart";
+import { toggle as toggleWishlist } from "../store/slices/wishlistSlice";
+import { toggleWishlist as apiToggleWishlist } from "../api/wishlist";
+import type { RootState } from "../store/store";
+import { ProductCard } from "../components/products/ProductCard";
 
 export const ProductPage: React.FC = () => {
   const { i18n, t } = useTranslation();
@@ -28,6 +42,11 @@ export const ProductPage: React.FC = () => {
   });
   const product = data as ProductSummary | undefined;
   const [imgIndex, setImgIndex] = React.useState(0);
+  const [qty, setQty] = React.useState(0);
+  const { data: highlights, isLoading: isRecommendationsLoading } = useQuery({
+    queryKey: ["web", "product", "recommendations"],
+    queryFn: () => fetchHomeHighlights(12),
+  });
 
   const images = product?.images?.length ? product.images : [];
   const active = images[imgIndex];
@@ -39,6 +58,17 @@ export const ProductPage: React.FC = () => {
       : null;
 
   const dispatch = useDispatch();
+  const cartItem = useSelector((s: RootState) =>
+    product ? s.cart.items.find((item) => item.id === product.id) : undefined
+  );
+  const isWished = useSelector((s: RootState) =>
+    product ? s.wishlist.ids.includes(product.id) : false
+  );
+
+  React.useEffect(() => {
+    if (cartItem?.qty && cartItem.qty > 0) setQty(cartItem.qty);
+    else setQty(0);
+  }, [cartItem?.qty]);
   const uiLang: "ru" | "tk" = i18n.language?.toLowerCase().startsWith("ru")
     ? "ru"
     : "tk";
@@ -49,22 +79,66 @@ export const ProductPage: React.FC = () => {
       : product.nameTk ?? product.nameRu ?? "";
   }, [product, uiLang]);
 
-  const onAddToCart = async () => {
-    if (!product) return;
-    const name = localizedName || product.id;
-    dispatch(
-      addCartItem({
-        id: product.id,
-        name,
-        price: Number(product.price),
-        qty: 1,
-        imageUrl: product.images?.[0],
-      })
-    );
-    try {
-      await apiAddToCart(product.id, Number(product.price), 1);
-    } catch {}
+  const syncCartQty = React.useCallback(
+    async (nextQty: number) => {
+      if (!product) return;
+      const name = localizedName || product.id;
+      setQty(nextQty);
+      if (nextQty <= 0) {
+        dispatch(removeCartItem(product.id));
+      } else if (!cartItem) {
+        dispatch(
+          addCartItem({
+            id: product.id,
+            name,
+            price: Number(product.price),
+            qty: nextQty,
+            imageUrl: product.images?.[0],
+          })
+        );
+      } else {
+        dispatch(updateCartQty({ id: product.id, qty: nextQty }));
+      }
+      try {
+        if (nextQty > 0) {
+          await apiAddToCart(product.id, Number(product.price), nextQty);
+        }
+      } catch (error) {
+        console.error("Failed to sync cart quantity", error);
+      }
+    },
+    [cartItem, dispatch, localizedName, product]
+  );
+
+  const onAddToCart = () => {
+    const current = qty || 0;
+    void syncCartQty(current + 1);
   };
+
+  const onIncreaseQty = () => {
+    void syncCartQty(qty + 1);
+  };
+
+  const onDecreaseQty = () => {
+    const next = qty - 1;
+    void syncCartQty(next < 0 ? 0 : next);
+  };
+
+  const onToggleWishlist = async () => {
+    if (!product) return;
+    dispatch(toggleWishlist(product.id));
+    try {
+      await apiToggleWishlist(product.id);
+    } catch (error) {
+      console.error("Failed to toggle wishlist", error);
+    }
+  };
+
+  const recommendationProducts = React.useMemo(() => {
+    const deals = highlights?.deals ?? [];
+    if (!product) return deals;
+    return deals.filter((item) => item.id !== product.id);
+  }, [highlights?.deals, product]);
 
   return (
     <Box
@@ -144,7 +218,7 @@ export const ProductPage: React.FC = () => {
                 <Chip
                   size="small"
                   color="error"
-                  label={`-${discount}%`}
+                  label={t("product.discountBadge", { value: discount })}
                   sx={{ position: "absolute", top: 8, left: 8 }}
                 />
               ) : null}
@@ -169,18 +243,51 @@ export const ProductPage: React.FC = () => {
             >{`${Number(compareAt).toFixed(2)} m`}</Typography>
           ) : null}
         </Stack>
-        <Stack direction="row" spacing={1}>
-          <Button variant="contained" onClick={onAddToCart}>
-            Add to Cart
+        <Stack direction="row" spacing={1} alignItems="center">
+          {qty > 0 ? (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <IconButton
+                color="primary"
+                size="small"
+                onClick={onDecreaseQty}
+                aria-label={t("product.decreaseQty", { defaultValue: "Decrease quantity" })}
+              >
+                <RemoveIcon fontSize="small" />
+              </IconButton>
+              <Typography variant="subtitle1" sx={{ minWidth: 32, textAlign: "center" }}>
+                {qty}
+              </Typography>
+              <IconButton
+                color="primary"
+                size="small"
+                onClick={onIncreaseQty}
+                aria-label={t("product.increaseQty", { defaultValue: "Increase quantity" })}
+              >
+                <AddIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+          ) : (
+            <Button variant="contained" onClick={onAddToCart}>
+              {t("product.addToCart", { defaultValue: "Add to cart" })}
+            </Button>
+          )}
+          <Button
+            variant={isWished ? "contained" : "outlined"}
+            color="secondary"
+            onClick={onToggleWishlist}
+            startIcon={isWished ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+          >
+            {t("product.wishlist")}
           </Button>
-          <Button variant="outlined">Wishlist</Button>
         </Stack>
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            Vendor: {product?.vendorId ? "Marketplace vendor" : "Global"}
+            {t("product.vendorLabel", { defaultValue: "Vendor" })}: {product?.vendorId
+              ? t("product.vendorMarketplace", { defaultValue: "Marketplace vendor" })
+              : t("product.vendorGlobal", { defaultValue: "Global" })}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            SKU: {product?.id?.slice(0, 8)}
+            {t("product.skuLabel", { defaultValue: "SKU" })}: {product?.id?.slice(0, 8)}
           </Typography>
         </Box>
       </Box>
@@ -250,6 +357,39 @@ export const ProductPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <Box sx={{ gridColumn: "1 / -1" }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          {t("product.recommendationsTitle", { defaultValue: "Recommended products" })}
+        </Typography>
+        {isRecommendationsLoading ? (
+          <Stack direction="row" spacing={2}>
+            <CircularProgress size={24} />
+            <Typography variant="body2" color="text.secondary">
+              {t("product.recommendationsLoading", { defaultValue: "Loading discounts..." })}
+            </Typography>
+          </Stack>
+        ) : recommendationProducts.length > 0 ? (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(auto-fill, minmax(220px, 1fr))",
+                md: "repeat(auto-fill, minmax(240px, 1fr))",
+              },
+              gap: 2,
+            }}
+          >
+            {recommendationProducts.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            {t("product.recommendationsEmpty", { defaultValue: "No discounted products available right now." })}
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 };
