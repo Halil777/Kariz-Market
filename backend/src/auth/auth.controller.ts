@@ -10,7 +10,12 @@ export class AuthController {
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto.email, dto.password);
+    return this.auth.register({
+      email: dto.email,
+      password: dto.password,
+      phone: dto.phone,
+      displayName: dto.displayName,
+    });
   }
 
   @Post('login')

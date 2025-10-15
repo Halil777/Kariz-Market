@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsPhoneNumber, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsPhoneNumber, IsString, MaxLength } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -9,5 +9,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  displayName?: string | null;
 }
 

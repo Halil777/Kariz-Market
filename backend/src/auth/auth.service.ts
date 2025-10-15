@@ -61,9 +61,15 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async register(email: string, password: string) {
-    const hash = await bcrypt.hash(password, 10);
-    const user = await this.users.create({ email, passwordHash: hash, role: Role.Customer });
+  async register(payload: { email: string; password: string; phone?: string | null; displayName?: string | null }) {
+    const hash = await bcrypt.hash(payload.password, 10);
+    const user = await this.users.create({
+      email: payload.email,
+      passwordHash: hash,
+      phone: payload.phone?.trim() || null,
+      displayName: payload.displayName?.trim() || null,
+      role: Role.Customer,
+    });
     return this.issueTokens(user);
   }
 
