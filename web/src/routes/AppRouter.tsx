@@ -8,6 +8,7 @@ import { SearchPage } from '../pages/Search';
 import { CartPage } from '../pages/Cart';
 import { CheckoutPage } from '../pages/Checkout';
 import { OrderConfirmationPage } from '../pages/OrderConfirmation';
+import { OrderPage } from '../pages/Order';
 import { AboutPage } from '../pages/About';
 import { ContactPage } from '../pages/Contact';
 import { PrivacyPage } from '../pages/Privacy';
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
       { path: '/product/:id', element: <ProductPage /> },
       { path: '/search', element: <SearchPage /> },
       { path: '/cart', element: <CartPage /> },
+      { path: '/order', element: <OrderPage /> },
       { path: '/checkout', element: <CheckoutPage /> },
       { path: '/order-confirmation/:id', element: <OrderConfirmationPage /> },
       { path: '/vendor/:id', element: <VendorStorefrontPage /> },
