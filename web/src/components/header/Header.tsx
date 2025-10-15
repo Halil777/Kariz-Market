@@ -7,9 +7,6 @@ import {
   IconButton,
   Badge,
   Container,
-  Typography,
-  Link as MLink,
-  Divider,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -22,16 +19,13 @@ import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
-import FlightOutlinedIcon from "@mui/icons-material/FlightOutlined";
-import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import LanguageIcon from "@mui/icons-material/Language";
 import CheckIcon from "@mui/icons-material/Check";
 import { Link } from "react-router-dom";
-import { useSelector, useDispatch } from 'react-redux';
-import type { RootState } from '../../store/store';
-import { set as setWishlist } from '../../store/slices/wishlistSlice';
-import { fetchWishlist } from '../../api/wishlist';
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState } from "../../store/store";
+import { set as setWishlist } from "../../store/slices/wishlistSlice";
+import { fetchWishlist } from "../../api/wishlist";
 import { useTranslation } from "react-i18next";
 
 const LOGO_URL = "/logo/logo.png";
@@ -46,41 +40,21 @@ export const Header: React.FC = () => {
     : "tk";
 
   const languages = React.useMemo(() => {
-    const lang = i18n.language?.toLowerCase().startsWith('ru') ? 'ru' : i18n.language?.toLowerCase().startsWith('tk') ? 'tk' : 'en';
+    const lang = i18n.language?.toLowerCase().startsWith("ru")
+      ? "ru"
+      : i18n.language?.toLowerCase().startsWith("tk")
+      ? "tk"
+      : "en";
     const labels = {
-      en: { tk: 'Turkmen', ru: 'Russian' },
-      ru: { tk: 'Туркменский', ru: 'Русский' },
-      tk: { tk: 'Türkmençe', ru: 'Rusça' },
+      en: { tk: "Turkmen", ru: "Russian" },
+      ru: { tk: "Туркменский", ru: "Русский" },
+      tk: { tk: "Türkmençe", ru: "Rusça" },
     } as const;
     return [
-      { code: 'tk', label: labels[lang].tk, short: 'TM' },
-      { code: 'ru', label: labels[lang].ru, short: 'RU' },
+      { code: "tk", label: labels[lang].tk, short: "TM" },
+      { code: "ru", label: labels[lang].ru, short: "RU" },
     ];
   }, [i18n.language]);
-
-  const quickLinks = React.useMemo(
-    () => [
-      {
-        icon: <CreditCardOutlinedIcon fontSize="small" />,
-        label: t("header.links.installments"),
-        to: "/catalog",
-      },
-      {
-        icon: <FlightOutlinedIcon fontSize="small" />,
-        label: t("header.links.travel"),
-        to: "/catalog",
-      },
-      {
-        icon: <BusinessCenterOutlinedIcon fontSize="small" />,
-        label: t("header.links.business"),
-        to: "/catalog",
-      },
-      { label: t("header.links.promotions"), to: "/catalog" },
-      { label: t("header.links.services"), to: "/catalog" },
-      { label: t("header.links.express"), to: "/catalog" },
-    ],
-    [t]
-  );
 
   const openLanguageMenu = (event: React.MouseEvent<HTMLElement>) => {
     setLanguageAnchor(event.currentTarget);
@@ -100,17 +74,31 @@ export const Header: React.FC = () => {
     activeLanguage.toUpperCase();
 
   React.useEffect(() => {
-    fetchWishlist().then((list:any[]) => dispatch(setWishlist(list.map((w:any) => w.productId)))).catch(() => {})
+    fetchWishlist()
+      .then((list: any[]) =>
+        dispatch(setWishlist(list.map((w: any) => w.productId)))
+      )
+      .catch(() => {});
     // Cart could be synced similarly if needed
   }, [dispatch]);
 
   // Badges
-  const cartCount = useSelector((s: RootState) => s.cart.items.reduce((sum, it) => sum + it.qty, 0));
+  const cartCount = useSelector((s: RootState) =>
+    s.cart.items.reduce((sum, it) => sum + it.qty, 0)
+  );
   const wishlistCount = useSelector((s: RootState) => s.wishlist.ids.length);
 
   return (
-    <Box component="header">
-      <AppBar position="static" color="primary" enableColorOnDark>
+    <Box
+      component="header"
+      sx={{
+        position: "fixed",
+        height: "70px",
+        width: "100%",
+        zIndex: 1000,
+      }}
+    >
+      <AppBar color="primary" enableColorOnDark>
         <Container maxWidth="lg">
           <Toolbar disableGutters sx={{ gap: 1.5, py: 1 }}>
             <Box
@@ -260,7 +248,11 @@ export const Header: React.FC = () => {
                   <PersonOutlineIcon />
                 </Badge>
               </IconButton>
-              <IconButton component={Link} to="/account/wishlist" color="inherit">
+              <IconButton
+                component={Link}
+                to="/account/wishlist"
+                color="inherit"
+              >
                 <Badge badgeContent={wishlistCount} color="secondary">
                   <FavoriteBorderIcon />
                 </Badge>
@@ -274,64 +266,6 @@ export const Header: React.FC = () => {
           </Toolbar>
         </Container>
       </AppBar>
-
-      <Box
-        sx={{
-          bgcolor: "background.paper",
-          borderBottom: 1,
-          borderColor: "divider",
-        }}
-      >
-        <Container maxWidth="lg">
-          <Toolbar
-            disableGutters
-            variant="dense"
-            sx={{ gap: 2, minHeight: 44 }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                alignItems: "center",
-                color: "text.secondary",
-                flexWrap: "wrap",
-              }}
-            >
-              {quickLinks.map((link, idx) => (
-                <MLink
-                  key={`${link.label}-${idx}`}
-                  component={Link}
-                  to={link.to}
-                  underline="none"
-                  color="inherit"
-                  sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                >
-                  {link.icon}
-                  {link.label}
-                </MLink>
-              ))}
-            </Box>
-
-            <Box sx={{ flex: 1 }} />
-
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                color: "text.secondary",
-              }}
-            >
-              <PlaceOutlinedIcon fontSize="small" />
-              <Typography variant="body2">{t("header.city")}</Typography>
-              <Divider flexItem orientation="vertical" />
-              <MLink component={Link} to="#" underline="hover" color="primary">
-                {t("header.changeCity")}
-              </MLink>
-            </Box>
-          </Toolbar>
-        </Container>
-      </Box>
     </Box>
   );
 };
