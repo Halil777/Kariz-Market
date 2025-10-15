@@ -153,6 +153,11 @@ export const BannerCarousel: React.FC<Props> = ({ intervalMs = 4000, slides = FA
           transition: 'box-shadow 0.4s ease',
           boxShadow: 1,
         },
+        '.banner-carousel__image': {
+          display: 'block',
+          width: '100%',
+          height: '100%',
+        },
         '.slick-slide.slick-active .banner-carousel__slide': {
           boxShadow: 4,
         },
