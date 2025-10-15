@@ -1,12 +1,23 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import Slider from "react-slick";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import { useTranslation } from "react-i18next";
+import { ArrowBackIosNew, ArrowForwardIos } from "@mui/icons-material";
+import { Link as RouterLink } from "react-router-dom";
 import { fetchBanners, type Banner } from "../../api/banners";
 import { API_BASE_URL } from "../../api/client";
 
-type Slide = { id: number; color: string; image?: string; meta?: Banner };
+type SlideLink = { href: string; external: boolean };
+
+type Slide = {
+  id: number;
+  color: string;
+  image?: string;
+  meta?: Banner;
+  href?: string;
+  external?: boolean;
+};
 
 type Props = {
   intervalMs?: number;
@@ -30,6 +41,11 @@ export const BannerCarousel: React.FC<Props> = ({
   const [index, setIndex] = React.useState(0);
   const { i18n } = useTranslation();
 
+  const resolvedHeight = React.useMemo(
+    () => (typeof height === "number" ? `${height}px` : height),
+    [height]
+  );
+
   React.useEffect(() => {
     fetchBanners()
       .then(setRemote)
@@ -49,6 +65,105 @@ export const BannerCarousel: React.FC<Props> = ({
     }
   }, []);
 
+  const isExternalHref = React.useCallback((href: string) => {
+    const trimmed = href.trim();
+    return /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(trimmed) ||
+      /^mailto:/i.test(trimmed) ||
+      /^tel:/i.test(trimmed);
+  }, []);
+
+  const normalizeInternalPath = React.useCallback((path: string) => {
+    if (!path) return path;
+    return path.startsWith("/") ? path : `/${path}`;
+  }, []);
+
+  const resolveBannerLink = React.useCallback(
+    (banner?: Banner | null): SlideLink | null => {
+      if (!banner) return null;
+
+      const productId = banner.productId ?? undefined;
+      if (productId !== undefined && productId !== null) {
+        const value = `${productId}`.trim();
+        if (value) {
+          return { href: `/product/${value}`, external: false };
+        }
+      }
+
+      const categoryId = banner.categoryId ?? undefined;
+      const subcategoryId = banner.subcategoryId ?? undefined;
+
+      if (
+        categoryId !== undefined &&
+        categoryId !== null &&
+        subcategoryId !== undefined &&
+        subcategoryId !== null
+      ) {
+        const categoryValue = `${categoryId}`.trim();
+        const subcategoryValue = `${subcategoryId}`.trim();
+        if (categoryValue && subcategoryValue) {
+          return {
+            href: `/catalog/${categoryValue}?subcategory=${subcategoryValue}`,
+            external: false,
+          };
+        }
+      }
+
+      if (subcategoryId !== undefined && subcategoryId !== null) {
+        const value = `${subcategoryId}`.trim();
+        if (value) {
+          return {
+            href: `/catalog?subcategory=${value}`,
+            external: false,
+          };
+        }
+      }
+
+      if (categoryId !== undefined && categoryId !== null) {
+        const value = `${categoryId}`.trim();
+        if (value) {
+          return {
+            href: `/catalog/${value}`,
+            external: false,
+          };
+        }
+      }
+
+      const rawLink =
+        banner.linkUrl ??
+        banner.link ??
+        banner.url ??
+        banner.redirectUrl ??
+        undefined;
+
+      if (rawLink) {
+        const trimmed = rawLink.trim();
+        if (!trimmed) return null;
+        if (isExternalHref(trimmed)) {
+          return { href: trimmed, external: true };
+        }
+        return { href: normalizeInternalPath(trimmed), external: false };
+      }
+
+      return null;
+    },
+    [isExternalHref, normalizeInternalPath]
+  );
+
+  const getSlideLink = React.useCallback(
+    (slide: Slide): SlideLink | null => {
+      if (slide.href) {
+        const trimmed = slide.href.trim();
+        if (!trimmed) return null;
+        if (slide.external ?? isExternalHref(trimmed)) {
+          return { href: trimmed, external: slide.external ?? isExternalHref(trimmed) };
+        }
+        return { href: normalizeInternalPath(trimmed), external: false };
+      }
+      return resolveBannerLink(slide.meta);
+    },
+    [isExternalHref, normalizeInternalPath, resolveBannerLink]
+  );
+
   const remoteSlides = React.useMemo<Slide[]>(() => {
     if (!remote || remote.length === 0) return [];
     return remote
@@ -60,8 +175,9 @@ export const BannerCarousel: React.FC<Props> = ({
           ? banner.imageUrl
           : `${apiOrigin}${banner.imageUrl}`,
         meta: banner,
+        ...(resolveBannerLink(banner) ?? {}),
       }));
-  }, [remote, apiOrigin]);
+  }, [remote, apiOrigin, resolveBannerLink]);
 
   const currentSlides = remoteSlides.length > 0 ? remoteSlides : slides;
   const count = currentSlides.length;
@@ -156,7 +272,7 @@ export const BannerCarousel: React.FC<Props> = ({
         overflow: "hidden",
         bgcolor: "grey.100",
         boxShadow: 1,
-        ".slick-slider": { height, overflow: "visible" },
+        ".slick-slider": { height: resolvedHeight, overflow: "visible" },
         ".slick-list": { height: "100%", mx: "-5px", overflow: "visible" },
         ".slick-slide": {
           px: "5px",
@@ -164,7 +280,7 @@ export const BannerCarousel: React.FC<Props> = ({
         },
         ".slick-slide > div": { height: "100%" },
         ".slick-slide .banner-carousel__slide": {
-          height: "40vh",
+          height: resolvedHeight,
           borderRadius: 2,
           overflow: "hidden",
           transition: "box-shadow 0.4s ease",
@@ -193,41 +309,122 @@ export const BannerCarousel: React.FC<Props> = ({
         }}
         {...sliderSettings}
       >
-        {currentSlides.map((slide) => (
-          <Box
-            key={slide.id}
-            className="banner-carousel__slide"
+        {currentSlides.map((slide) => {
+          const link = getSlideLink(slide);
+          const clickableProps: Record<string, unknown> = link
+            ? link.external
+              ? {
+                  component: "a" as const,
+                  href: link.href,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                }
+              : { component: RouterLink, to: link.href }
+            : {};
+
+          return (
+            <Box
+              key={slide.id}
+              className="banner-carousel__slide"
+              {...clickableProps}
+              sx={{
+                position: "relative",
+                width: "100%",
+                height: resolvedHeight,
+                bgcolor: slide.color,
+                display: "block",
+                borderRadius: 2,
+                overflow: "hidden",
+                transition: "box-shadow 0.4s ease, transform 0.3s ease",
+                boxShadow: 1,
+                cursor: link ? "pointer" : "default",
+                textDecoration: "none",
+                color: "inherit",
+                outline: "none",
+                "&:focus-visible": {
+                  outline: (theme) => `3px solid ${theme.palette.primary.main}`,
+                  outlineOffset: 2,
+                },
+              }}
+            >
+              {slide.image ? (
+                <LazyLoadImage
+                  src={slide.image}
+                  alt={localized(slide.meta, "title") || "banner"}
+                  effect="blur"
+                  draggable={false}
+                  width="100%"
+                  height="100%"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    objectPosition: "center",
+                  }}
+                  wrapperClassName="banner-carousel__image"
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: "100%",
+                    background:
+                      "linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.05))",
+                  }}
+                />
+              )}
+            </Box>
+          );
+        })}
+      </Slider>
+
+      {count > 1 && (
+        <>
+          <IconButton
+            aria-label="Previous banner"
+            onClick={() => sliderRef.current?.slickPrev()}
             sx={{
-              position: "relative",
-              width: "100%",
-              height: "40vh",
-              bgcolor: slide.color,
+              position: "absolute",
+              top: "50%",
+              left: { xs: 8, md: 16 },
+              transform: "translateY(-50%)",
+              bgcolor: "rgba(255,255,255,0.9)",
+              boxShadow: 3,
+              zIndex: 2,
+              color: "text.primary",
+              "&:hover": { bgcolor: "rgba(255,255,255,1)" },
+              "&:focus-visible": {
+                outline: (theme) => `3px solid ${theme.palette.primary.main}`,
+                outlineOffset: 2,
+              },
             }}
           >
-            {slide.image ? (
-              <LazyLoadImage
-                src={slide.image}
-                alt={localized(slide.meta, "title") || "banner"}
-                effect="blur"
-                draggable={false}
-                width="100%"
-                height="100%"
-                style={{ display: "block" }}
-                wrapperClassName="banner-carousel__image"
-              />
-            ) : (
-              <Box
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  background:
-                    "linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.05))",
-                }}
-              />
-            )}
-          </Box>
-        ))}
-      </Slider>
+            <ArrowBackIosNew fontSize="small" />
+          </IconButton>
+          <IconButton
+            aria-label="Next banner"
+            onClick={() => sliderRef.current?.slickNext()}
+            sx={{
+              position: "absolute",
+              top: "50%",
+              right: { xs: 8, md: 16 },
+              transform: "translateY(-50%)",
+              bgcolor: "rgba(255,255,255,0.9)",
+              boxShadow: 3,
+              zIndex: 2,
+              color: "text.primary",
+              "&:hover": { bgcolor: "rgba(255,255,255,1)" },
+              "&:focus-visible": {
+                outline: (theme) => `3px solid ${theme.palette.primary.main}`,
+                outlineOffset: 2,
+              },
+            }}
+          >
+            <ArrowForwardIos fontSize="small" />
+          </IconButton>
+        </>
+      )}
 
       {currentMeta && (
         <Box

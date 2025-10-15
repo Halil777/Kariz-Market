@@ -10,6 +10,13 @@ export type Banner = {
   order?: number;
   isActive?: boolean;
   createdAt?: string;
+  productId?: string | null;
+  categoryId?: string | null;
+  subcategoryId?: string | null;
+  link?: string | null;
+  linkUrl?: string | null;
+  url?: string | null;
+  redirectUrl?: string | null;
 };
 
 export const fetchBanners = async () => {
