@@ -6,7 +6,7 @@ export class LoyaltyAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id', unique: true })
+  @Column({ name: 'user_id', type: 'uuid', unique: true })
   userId: string;
 
   @Column({ name: 'points_balance', type: 'int', default: 0 })

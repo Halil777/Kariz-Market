@@ -11,7 +11,7 @@ export class Payment {
   order: Order;
 
   @Index()
-  @Column({ name: 'order_id' })
+  @Column({ name: 'order_id', type: 'uuid' })
   orderId: string;
 
   @Column()

@@ -11,13 +11,13 @@ export class OrderItem {
   order: Order;
 
   @Index()
-  @Column({ name: 'order_id' })
+  @Column({ name: 'order_id', type: 'uuid' })
   orderId: string;
 
-  @Column({ name: 'vendor_id', nullable: true })
+  @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
   vendorId?: string | null;
 
-  @Column({ name: 'variant_id' })
+  @Column({ name: 'variant_id', type: 'uuid' })
   variantId: string;
 
   @Column({ type: 'int' })

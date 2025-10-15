@@ -27,7 +27,7 @@ export class Category {
   @JoinColumn({ name: 'parent_id' })
   parent?: Category | null;
 
-  @Column({ name: 'parent_id', nullable: true })
+  @Column({ name: 'parent_id', type: 'uuid', nullable: true })
   parentId?: string | null;
 
   @OneToMany(() => Category, (c) => c.parent)
